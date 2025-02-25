@@ -195,7 +195,8 @@ interface IVaultManager {
     /// @notice Updates the oracle with new price data
     /// @param assetId Unique identifier of the asset
     /// @param data Encoded oracle update data
-    function updateOracle(bytes32 assetId, bytes calldata data) external;
+    /// @return price The new price of the asset
+    function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256 price);
 
     /// @notice Allows a user to approve a spender to spend their tokens
     /// @param owner Address of the token owner
