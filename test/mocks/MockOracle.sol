@@ -4,14 +4,16 @@ pragma solidity ^0.8.13;
 import {IOracle} from "../../src/interfaces/IOracle.sol";
 
 contract MockOracle is IOracle {
-    mapping(bytes32 => Price) public prices;
+    uint8 public constant override decimals = 18;
 
-    function getAssetPrice(bytes32 assetId) external view returns (Price memory) {
+    mapping(bytes32 => uint256) public prices;
+
+    function getAssetPrice(bytes32 assetId) external view returns (uint256) {
         return prices[assetId];
     }
 
-    function getAssetsPrices(bytes32[] calldata assetIds) external view returns (Price[] memory results) {
-        results = new Price[](assetIds.length);
+    function getAssetsPrices(bytes32[] calldata assetIds) external view returns (uint256[] memory results) {
+        results = new uint256[](assetIds.length);
         for (uint256 i = 0; i < assetIds.length; i++) {
             results[i] = prices[assetIds[i]];
         }
@@ -19,7 +21,7 @@ contract MockOracle is IOracle {
     }
 
     function updateOracle(bytes32 assetId, bytes calldata data) external {
-        Price memory price = abi.decode(data, (Price));
+        uint256 price = abi.decode(data, (uint256));
         prices[assetId] = price;
     }
 }
