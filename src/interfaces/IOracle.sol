@@ -16,4 +16,9 @@ interface IOracle {
     /// @param assetIds The list of asset identifiers.
     /// @return The list of prices for the specified assets.
     function getAssetsPrices(bytes32[] calldata assetIds) external view returns (uint256[] memory);
+
+    /// @notice Updates the oracle with new price data
+    /// @param assetId The identifier of the asset
+    /// @param data The new price data
+    function updateOracle(bytes32 assetId, bytes calldata data) external;
 }

@@ -193,8 +193,9 @@ interface IVaultManager {
     function close(bytes32 id, address to) external returns (uint128 collateralReceived);
 
     /// @notice Updates the oracle with new price data
+    /// @param assetId Unique identifier of the asset
     /// @param data Encoded oracle update data
-    function updateOracle(bytes calldata data) external;
+    function updateOracle(bytes32 assetId, bytes calldata data) external;
 
     /// @notice Allows a user to approve a spender to spend their tokens
     /// @param owner Address of the token owner
