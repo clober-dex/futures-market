@@ -135,8 +135,13 @@ interface IVaultManager {
 
     /// @notice Creates a new vault with the specified configuration
     /// @param config Configuration parameters for the new vault
+    /// @param name Name of the debt token
+    /// @param symbol Symbol of the debt token
     /// @return id Unique identifier of the new vault
-    function open(Config calldata config) external returns (bytes32 id);
+    /// @return debtToken Address of the debt token
+    function open(Config calldata config, string calldata name, string calldata symbol)
+        external
+        returns (bytes32 id, address debtToken);
 
     /// @notice Deposits collateral into a vault
     /// @param id Unique identifier of the vault
