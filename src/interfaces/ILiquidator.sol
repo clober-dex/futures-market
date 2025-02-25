@@ -13,6 +13,12 @@ interface ILiquidator {
     /// @param debtCovered Amount of debt that was covered by the liquidation
     /// @param collateralLiquidated Amount of collateral that was seized during liquidation
     /// @param data Additional data for the liquidation
-    function onLiquidation(bytes32 id, address caller, address user, uint128 debtCovered, uint128 collateralLiquidated, bytes calldata data)
-        external;
+    function onLiquidation(
+        bytes32 id,
+        address caller,
+        address user,
+        uint128 debtCovered,
+        uint128 collateralLiquidated,
+        bytes calldata data
+    ) external;
 }
