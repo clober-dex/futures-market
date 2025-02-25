@@ -206,4 +206,9 @@ interface IVaultManager {
     /// @param r ECDSA signature component
     /// @param s ECDSA signature component
     function permit(address owner, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
+
+    /// @notice Allows a user to perform multiple actions in a single call
+    /// @param data Array of encoded function calls to be executed
+    /// @return results Array of returned results from each function call
+    function multicall(bytes[] calldata data) external returns (bytes[] memory results);
 }
