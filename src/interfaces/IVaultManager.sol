@@ -6,6 +6,16 @@ pragma solidity ^0.8.0;
 /// @notice Interface for managing vaults that allow users to deposit collateral and mint debt tokens
 /// @dev Handles vault creation, collateral management, debt minting/burning, liquidations, and settlement
 interface IVaultManager {
+    error InvalidConfig();
+    error VaultAlreadyExists();
+    error VaultDoesNotExist();
+    error InsufficientCollateral();
+    error LTVExceeded();
+    error BurnExceedsDebt();
+    error NotExpired();
+    error AlreadySettled();
+    error NotSettled();
+
     /// @notice Configuration parameters for a vault
     /// @param assetId Unique identifier for the underlying asset
     /// @param collateral Address of the collateral token
@@ -176,11 +186,11 @@ interface IVaultManager {
     /// @param id Unique identifier of the vault
     /// @param user Address of the position owner to liquidate
     /// @param debtToCover Amount of debt to cover in the liquidation
-    /// @param liquidator Address of the liquidator contract that will receive the callback (address(0) to skip callback)
+    /// @param skipCallback Whether to skip the callback to the liquidator
     /// @param data Additional data for the liquidation
     /// @return debtCovered The actual amount of debt that was covered in the liquidation
     /// @return collateralLiquidated The amount of collateral that was liquidated
-    function liquidate(bytes32 id, address user, uint128 debtToCover, address liquidator, bytes calldata data)
+    function liquidate(bytes32 id, address user, uint128 debtToCover, bool skipCallback, bytes calldata data)
         external
         returns (uint128 debtCovered, uint128 collateralLiquidated);
 
