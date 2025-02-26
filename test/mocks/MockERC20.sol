@@ -9,4 +9,8 @@ contract MockERC20 is ERC20Permit {
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
+
+    function hashTypedDataV4(bytes32 structHash) public view returns (bytes32) {
+        return _hashTypedDataV4(structHash);
+    }
 }
