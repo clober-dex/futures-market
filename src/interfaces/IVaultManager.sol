@@ -214,13 +214,12 @@ interface IVaultManager {
     function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256 price);
 
     /// @notice Allows a user to approve a spender to spend their tokens
-    /// @param owner Address of the token owner
     /// @param value Amount of tokens to approve
     /// @param deadline Timestamp after which the approval is no longer valid
     /// @param v ECDSA signature component
     /// @param r ECDSA signature component
     /// @param s ECDSA signature component
-    function permit(address owner, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
+    function permit(uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 
     /// @notice Allows a user to perform multiple actions in a single call
     /// @param data Array of encoded function calls to be executed
