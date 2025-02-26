@@ -11,10 +11,12 @@ interface IVaultManager {
     error VaultDoesNotExist();
     error InsufficientCollateral();
     error LTVExceeded();
+    error PositionSafe();
     error BurnExceedsDebt();
     error NotExpired();
     error AlreadySettled();
     error NotSettled();
+    error InvalidFlashLoanCallback();
 
     /// @notice Configuration parameters for a vault
     /// @param assetId Unique identifier for the underlying asset
@@ -107,9 +109,10 @@ interface IVaultManager {
 
     /// @notice Emitted when a vault is closed
     /// @param id Unique identifier of the vault
+    /// @param closer Address that closed the vault
     /// @param to Address that received the collateral
     /// @param amount Amount of collateral withdrawn when closing the vault
-    event Close(bytes32 indexed id, address indexed to, uint128 amount);
+    event Close(bytes32 indexed id, address indexed closer, address indexed to, uint128 amount);
 
     /// @notice Returns the address of the price oracle used by the vault manager
     /// @return oracle Address of the price oracle contract
@@ -214,15 +217,11 @@ interface IVaultManager {
     function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256 price);
 
     /// @notice Allows a user to approve a spender to spend their tokens
+    /// @param token Address of the token to approve
     /// @param value Amount of tokens to approve
     /// @param deadline Timestamp after which the approval is no longer valid
     /// @param v ECDSA signature component
     /// @param r ECDSA signature component
     /// @param s ECDSA signature component
-    function permit(uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
-
-    /// @notice Allows a user to perform multiple actions in a single call
-    /// @param data Array of encoded function calls to be executed
-    /// @return results Array of returned results from each function call
-    function multicall(bytes[] calldata data) external returns (bytes[] memory results);
+    function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 }
