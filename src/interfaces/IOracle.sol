@@ -3,10 +3,10 @@
 pragma solidity ^0.8.0;
 
 interface IOracle {
-    /// @notice Emitted when the oracle is updated.
+    /// @notice Emitted when the price is updated.
     /// @param assetId The identifier of the asset.
     /// @param price The new price of the asset.
-    event OracleUpdated(bytes32 indexed assetId, uint256 price);
+    event PriceUpdated(bytes32 indexed assetId, uint256 price);
 
     /// @notice Emitted when the asset identifier is set.
     /// @param asset The address of the asset.
@@ -40,7 +40,7 @@ interface IOracle {
     /// @notice Updates the oracle with new price data
     /// @param assetId The identifier of the asset
     /// @param data The new price data
-    function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256 price);
+    function updatePrice(bytes32 assetId, bytes calldata data) external payable returns (uint256 price);
 
     /// @notice Retrieves the asset identifier for a given asset.
     /// @param asset The address of the asset.

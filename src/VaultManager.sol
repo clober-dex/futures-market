@@ -240,8 +240,7 @@ contract VaultManager is
 
     function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256) {
         // todo: receive fee amount
-        // todo: change to updatePrice
-        return IOracle(priceOracle).updateOracle{value: msg.value}(assetId, data);
+        return IOracle(priceOracle).updatePrice{value: msg.value}(assetId, data);
     }
 
     function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
