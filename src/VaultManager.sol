@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC3156FlashLender, IERC3156FlashBorrower} from "@openzeppelin/contracts/interfaces/IERC3156.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -98,16 +99,18 @@ contract VaultManager is
 
     function _isUnderLtv(address debtToken, address user, uint256 relativePrice) internal view returns (bool) {
         Config storage config = _configs[debtToken];
+        uint256 collateralPrecision = 10 ** IERC20Metadata(config.collateral).decimals();
         Position memory position = _positions[debtToken][user];
-        return uint256(position.collateral) * config.ltv * pricePrecision
-            > uint256(position.debt) * relativePrice * PRECISION;
+        return uint256(position.collateral) * config.ltv * pricePrecision * 1e18
+            > uint256(position.debt) * relativePrice * PRECISION * collateralPrecision;
     }
 
     function _isPositionSafe(address debtToken, address user, uint256 relativePrice) internal view returns (bool) {
         Config storage config = _configs[debtToken];
+        uint256 collateralPrecision = 10 ** IERC20Metadata(config.collateral).decimals();
         Position memory position = _positions[debtToken][user];
-        return uint256(position.collateral) * config.liquidationThreshold * pricePrecision
-            > uint256(position.debt) * relativePrice * PRECISION;
+        return uint256(position.collateral) * config.liquidationThreshold * pricePrecision * 1e18
+            > uint256(position.debt) * relativePrice * PRECISION * collateralPrecision;
     }
 
     function deposit(address debtToken, address to, uint128 amount) external nonReentrant {
@@ -221,7 +224,8 @@ contract VaultManager is
 
         Debt(debtToken).burn(msg.sender, amount);
 
-        collateralReceived = uint128(uint256(amount) * config.settlePrice / pricePrecision);
+        uint256 collateralPrecision = 10 ** IERC20Metadata(config.collateral).decimals();
+        collateralReceived = uint128(uint256(amount) * config.settlePrice * collateralPrecision / pricePrecision / 1e18);
         IERC20(config.collateral).safeTransfer(to, collateralReceived);
         emit Redeem(debtToken, msg.sender, to, amount, collateralReceived);
     }
@@ -232,7 +236,10 @@ contract VaultManager is
         if (!isSettled(debtToken)) revert NotSettled();
 
         Position memory position = _positions[debtToken][msg.sender];
-        collateralReceived = position.collateral - uint128(uint256(position.debt) * config.settlePrice / pricePrecision);
+
+        uint256 collateralPrecision = 10 ** IERC20Metadata(config.collateral).decimals();
+        collateralReceived = position.collateral
+            - uint128(uint256(position.debt) * config.settlePrice * collateralPrecision / pricePrecision / 1e18);
         IERC20(config.collateral).safeTransfer(to, collateralReceived);
         delete _positions[debtToken][msg.sender];
 
