@@ -54,13 +54,10 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
         }
     }
 
-    function updatePrice(bytes32 assetId, bytes calldata data) external payable returns (uint256 price) {
+    function updatePrice(bytes calldata data) external payable {
         bytes[] memory pythUpdateData = abi.decode(data, (bytes[]));
         uint256 updateFee = pyth.getUpdateFee(pythUpdateData);
         pyth.updatePriceFeeds{value: updateFee}(pythUpdateData);
-
-        price = getAssetPrice(assetId);
-        emit PriceUpdated(assetId, price);
     }
 
     function setAssetId(address asset, bytes32 assetId) external onlyOwner {

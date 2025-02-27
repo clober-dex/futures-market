@@ -33,11 +33,9 @@ contract MockOracle is IOracle {
         return results;
     }
 
-    function updatePrice(bytes32 assetId, bytes calldata data) external payable returns (uint256) {
-        uint256 price = abi.decode(data, (uint256));
+    function updatePrice(bytes calldata data) external payable {
+        (bytes32 assetId, uint256 price) = abi.decode(data, (bytes32, uint256));
         prices[assetId] = price;
-        emit PriceUpdated(assetId, price);
-        return price;
     }
 
     function setAssetId(address asset, bytes32 assetId) external {

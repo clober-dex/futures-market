@@ -39,9 +39,9 @@ contract VaultManagerTest is Test {
         vaultManager.initialize(address(this), debtTokenImpl);
         liquidator = new MockLiquidator(vaultManager);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(300 * 1e18)); // $300
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 300 * 1e18)); // $300
         oracle.setAssetId(address(collateral), COLLATERAL_ASSET_ID);
-        oracle.updatePrice(COLLATERAL_ASSET_ID, abi.encode(2 * 1e18)); // $2
+        oracle.updatePrice(abi.encode(COLLATERAL_ASSET_ID, 2 * 1e18)); // $2
     }
 
     function _defaultConfig() internal view returns (IVaultManager.Config memory) {
@@ -289,7 +289,7 @@ contract VaultManagerTest is Test {
         vaultManager.deposit(debtToken, address(this), 100_000);
         vaultManager.mint(debtToken, LIQUIDATOR, 200);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(800 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 800 * 1e18));
 
         // Liquidator calls liquidate
         vm.expectEmit(address(vaultManager));
@@ -329,7 +329,7 @@ contract VaultManagerTest is Test {
         vaultManager.deposit(debtToken, address(this), 100_000);
         vaultManager.mint(debtToken, LIQUIDATOR, 200);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(800 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 800 * 1e18));
 
         vm.expectEmit(address(vaultManager));
         emit IVaultManager.Liquidate(debtToken, LIQUIDATOR, address(this), 200, 100_000, 400 * 1e18);
@@ -366,7 +366,7 @@ contract VaultManagerTest is Test {
         vaultManager.deposit(debtToken, address(this), 100_000);
         vaultManager.mint(debtToken, address(liquidator), 200);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(800 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 800 * 1e18));
 
         bytes memory callbackData = abi.encode("test data");
         bytes32 expectedFlag =
@@ -397,7 +397,7 @@ contract VaultManagerTest is Test {
         vaultManager.deposit(debtToken, address(this), 100_000);
         vaultManager.mint(debtToken, address(this), 200);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(400 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 400 * 1e18));
 
         // Advance time, settle
         vm.warp(FUTURE_EXPIRATION + 1);
@@ -412,7 +412,7 @@ contract VaultManagerTest is Test {
         assertEq(collateral.balanceOf(RECEIVER), 20_000, "collateral balance mismatch");
 
         // See it does not effect
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(99999999 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 99999999 * 1e18));
 
         vm.expectEmit(address(vaultManager));
         emit IVaultManager.Redeem(debtToken, address(this), RECEIVER, 100, 20_000);
@@ -430,7 +430,7 @@ contract VaultManagerTest is Test {
         vaultManager.deposit(debtToken, address(this), 100_000);
         vaultManager.mint(debtToken, address(this), 200);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(400 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 400 * 1e18));
 
         // Move time forward, settle
         vm.warp(FUTURE_EXPIRATION + 1);
@@ -507,10 +507,10 @@ contract VaultManagerTest is Test {
     }
 
     function test_updateOracle() public {
-        bytes memory data = abi.encode(123456); // e.g. new price
-        vm.expectEmit(address(oracle));
-        emit IOracle.PriceUpdated(DEBT_ASSET_ID, 123456);
-        vaultManager.updateOracle(DEBT_ASSET_ID, data);
+        bytes memory data = abi.encode(DEBT_ASSET_ID, 123456); // e.g. new price
+        vaultManager.updateOracle(data);
+
+        assertEq(oracle.getAssetPrice(DEBT_ASSET_ID), 123456, "price mismatch");
     }
 
     function test_permit() public {
@@ -620,8 +620,7 @@ contract VaultManagerTest is Test {
 
         bytes memory updateData = abi.encodeWithSelector(
             vaultManager.updateOracle.selector,
-            DEBT_ASSET_ID,
-            abi.encode(800 * 1e18) // mock new price
+            abi.encode(DEBT_ASSET_ID, 800 * 1e18) // mock new price
         );
 
         bytes memory liquidateData =
@@ -631,12 +630,11 @@ contract VaultManagerTest is Test {
         calls[0] = updateData;
         calls[1] = liquidateData;
 
-        vm.expectEmit(address(oracle));
-        emit IOracle.PriceUpdated(DEBT_ASSET_ID, 800 * 1e18);
         vm.expectEmit(address(vaultManager));
         emit IVaultManager.Liquidate(debtToken, address(this), address(this), 140, 70_000, 400 * 1e18);
         vaultManager.multicall(calls);
 
+        assertEq(oracle.getAssetPrice(DEBT_ASSET_ID), 800 * 1e18, "price mismatch");
         IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.collateral, 30_000, "collateral mismatch");
         assertEq(position.debt, 60, "debt mismatch");
@@ -651,7 +649,7 @@ contract VaultManagerTest is Test {
         vaultManager.deposit(debtToken, address(this), 100_000);
         vaultManager.mint(debtToken, address(this), 200);
 
-        oracle.updatePrice(DEBT_ASSET_ID, abi.encode(400 * 1e18));
+        oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 400 * 1e18));
 
         vm.warp(FUTURE_EXPIRATION + 1);
         vaultManager.settle(debtToken);

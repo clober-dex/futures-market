@@ -219,10 +219,8 @@ interface IVaultManager {
     function close(address debtToken, address to) external returns (uint128 collateralReceived);
 
     /// @notice Updates the oracle with new price data
-    /// @param assetId Unique identifier of the asset
     /// @param data Encoded oracle update data
-    /// @return price The new price of the asset
-    function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256 price);
+    function updateOracle(bytes calldata data) external payable;
 
     /// @notice Allows a user to approve a spender to spend their tokens
     /// @param token Address of the token to approve

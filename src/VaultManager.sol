@@ -240,9 +240,8 @@ contract VaultManager is
         emit Close(debtToken, msg.sender, to, collateralReceived);
     }
 
-    function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256) {
-        // todo: receive fee amount
-        return IOracle(priceOracle).updatePrice{value: msg.value}(assetId, data);
+    function updateOracle(bytes calldata data) external payable {
+        IOracle(priceOracle).updatePrice{value: msg.value}(data);
     }
 
     function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
@@ -259,6 +258,7 @@ contract VaultManager is
 
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
         external
+        nonReentrant
         returns (bool)
     {
         IERC20(token).safeTransfer(address(receiver), amount);
