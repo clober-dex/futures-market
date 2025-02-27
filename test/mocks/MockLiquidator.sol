@@ -24,7 +24,6 @@ contract MockLiquidator is ILiquidator {
 
     function onLiquidation(
         address debtToken,
-        address caller,
         address user,
         uint128 debtCovered,
         uint128 collateralLiquidated,
@@ -32,7 +31,7 @@ contract MockLiquidator is ILiquidator {
         bytes calldata data
     ) external {
         require(msg.sender == address(manager), "MockLiquidator: unauthorized");
-        flag = keccak256(abi.encode(debtToken, caller, user, debtCovered, collateralLiquidated, relativePrice, data));
+        flag = keccak256(abi.encode(debtToken, user, debtCovered, collateralLiquidated, relativePrice, data));
         IERC20(debtToken).approve(address(manager), debtCovered);
     }
 }

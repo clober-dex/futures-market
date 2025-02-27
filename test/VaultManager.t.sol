@@ -369,8 +369,7 @@ contract VaultManagerTest is Test {
         oracle.updatePrice(abi.encode(DEBT_ASSET_ID, 800 * 1e18));
 
         bytes memory callbackData = abi.encode("test data");
-        bytes32 expectedFlag =
-            keccak256(abi.encode(debtToken, address(liquidator), address(this), 120, 60_000, 400 * 1e18, callbackData));
+        bytes32 expectedFlag = keccak256(abi.encode(debtToken, address(this), 120, 60_000, 400 * 1e18, callbackData));
 
         vm.expectEmit(address(vaultManager));
         emit IVaultManager.Liquidate(debtToken, address(liquidator), address(this), 120, 60_000, 400 * 1e18);

@@ -201,9 +201,8 @@ contract VaultManager is
 
         IERC20(config.collateral).safeTransfer(msg.sender, collateralLiquidated);
         if (!skipCallback) {
-            // todo: separate caller and liquidator
             ILiquidator(msg.sender).onLiquidation(
-                debtToken, msg.sender, user, debtCovered, collateralLiquidated, relativePrice, data
+                debtToken, user, debtCovered, collateralLiquidated, relativePrice, data
             );
         }
         Debt(debtToken).burn(msg.sender, debtCovered);
