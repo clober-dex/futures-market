@@ -639,7 +639,7 @@ contract VaultManagerTest is Test {
 
         vm.expectEmit(address(vaultManager));
         emit IVaultManager.Liquidate(debtToken, address(this), address(this), 140 * 1e18, 70_000 * 1e6, 400 * 1e18);
-        vaultManager.multicall(calls);
+        vaultManager.multicall{value: 0.001 ether}(calls);
 
         assertEq(oracle.getAssetPrice(DEBT_ASSET_ID), 800 * 1e18, "price mismatch");
         IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));

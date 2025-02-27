@@ -178,36 +178,36 @@ interface IVaultManager {
         uint128 minDebt,
         string calldata name,
         string calldata symbol
-    ) external returns (address debtToken);
+    ) external payable returns (address debtToken);
 
     /// @notice Deposits collateral into a vault
     /// @param debtToken Address of the debt token
     /// @param to Address to credit the deposit to
     /// @param amount Amount of collateral to deposit
-    function deposit(address debtToken, address to, uint128 amount) external;
+    function deposit(address debtToken, address to, uint128 amount) external payable;
 
     /// @notice Withdraws collateral from a vault
     /// @param debtToken Address of the debt token
     /// @param to Address to receive the withdrawn collateral
     /// @param amount Amount of collateral to withdraw
-    function withdraw(address debtToken, address to, uint128 amount) external;
+    function withdraw(address debtToken, address to, uint128 amount) external payable;
 
     /// @notice Mints debt tokens against deposited collateral
     /// @param debtToken Address of the debt token
     /// @param to Address to receive the minted debt tokens
     /// @param amount Amount of debt tokens to mint
-    function mint(address debtToken, address to, uint128 amount) external;
+    function mint(address debtToken, address to, uint128 amount) external payable;
 
     /// @notice Burns debt tokens to reduce debt
     /// @param debtToken Address of the debt token
     /// @param to Address to credit the debt reduction to
     /// @param amount Amount of debt tokens to burn
-    function burn(address debtToken, address to, uint128 amount) external;
+    function burn(address debtToken, address to, uint128 amount) external payable;
 
     /// @notice Settles a vault after expiration
     /// @param debtToken Address of the debt token
     /// @return settlePrice The final settlement price used for the vault
-    function settle(address debtToken) external returns (uint256 settlePrice);
+    function settle(address debtToken) external payable returns (uint256 settlePrice);
 
     /// @notice Liquidates an undercollateralized position
     /// @param debtToken Address of the debt token
@@ -219,6 +219,7 @@ interface IVaultManager {
     /// @return collateralLiquidated The amount of collateral that was liquidated
     function liquidate(address debtToken, address user, uint128 debtToCover, bool skipCallback, bytes calldata data)
         external
+        payable
         returns (uint128 debtCovered, uint128 collateralLiquidated);
 
     /// @notice Redeems debt tokens for collateral after settlement
@@ -226,13 +227,16 @@ interface IVaultManager {
     /// @param to Address to receive the collateral
     /// @param amount Amount of debt tokens to redeem
     /// @return collateralReceived The amount of collateral received in exchange
-    function redeem(address debtToken, address to, uint128 amount) external returns (uint128 collateralReceived);
+    function redeem(address debtToken, address to, uint128 amount)
+        external
+        payable
+        returns (uint128 collateralReceived);
 
     /// @notice Closes a vault and withdraws remaining collateral
     /// @param debtToken Address of the debt token
     /// @param to Address to receive the withdrawn collateral
     /// @return collateralReceived The amount of collateral received in exchange
-    function close(address debtToken, address to) external returns (uint128 collateralReceived);
+    function close(address debtToken, address to) external payable returns (uint128 collateralReceived);
 
     /// @notice Updates the oracle with new price data
     /// @param data Encoded oracle update data
@@ -245,5 +249,5 @@ interface IVaultManager {
     /// @param v ECDSA signature component
     /// @param r ECDSA signature component
     /// @param s ECDSA signature component
-    function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
+    function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external payable;
 }

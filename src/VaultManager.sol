@@ -11,7 +11,6 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardTransientUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardTransientUpgradeable.sol";
-import {MulticallUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/MulticallUpgradeable.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
@@ -20,6 +19,7 @@ import {IVaultManager} from "./interfaces/IVaultManager.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {ILiquidator} from "./interfaces/ILiquidator.sol";
 import {Debt} from "./Debt.sol";
+import {Multicall} from "./libraries/Multicall.sol";
 
 contract VaultManager is
     IVaultManager,
@@ -29,7 +29,7 @@ contract VaultManager is
     UUPSUpgradeable,
     Ownable2StepUpgradeable,
     ReentrancyGuardTransientUpgradeable,
-    MulticallUpgradeable
+    Multicall
 {
     using SafeERC20 for IERC20;
 
@@ -75,7 +75,7 @@ contract VaultManager is
         uint128 minDebt,
         string calldata name,
         string calldata symbol
-    ) external nonReentrant onlyOwner returns (address debtToken) {
+    ) external payable nonReentrant onlyOwner returns (address debtToken) {
         if (expiration < block.timestamp) revert InvalidConfig();
         if (ltv > liquidationThreshold) revert InvalidConfig();
         if (ltv > PRECISION) revert InvalidConfig();
@@ -138,7 +138,7 @@ contract VaultManager is
         if (isSettled(debtToken)) revert AlreadySettled();
     }
 
-    function deposit(address debtToken, address to, uint128 amount) external nonReentrant {
+    function deposit(address debtToken, address to, uint128 amount) external payable nonReentrant {
         _checkUnsettled(debtToken);
 
         _transferToken(_configs[debtToken].collateral, msg.sender, address(this), amount);
@@ -146,7 +146,7 @@ contract VaultManager is
         emit Deposit(debtToken, msg.sender, to, amount);
     }
 
-    function withdraw(address debtToken, address to, uint128 amount) external nonReentrant {
+    function withdraw(address debtToken, address to, uint128 amount) external payable nonReentrant {
         _checkUnsettled(debtToken);
 
         Position memory position = _positions[debtToken][msg.sender];
@@ -161,7 +161,7 @@ contract VaultManager is
         emit Withdraw(debtToken, msg.sender, to, amount);
     }
 
-    function mint(address debtToken, address to, uint128 amount) external nonReentrant {
+    function mint(address debtToken, address to, uint128 amount) external payable nonReentrant {
         _checkUnsettled(debtToken);
 
         _positions[debtToken][msg.sender].debt += amount;
@@ -172,7 +172,7 @@ contract VaultManager is
         emit Mint(debtToken, msg.sender, to, amount, relativePrice);
     }
 
-    function burn(address debtToken, address to, uint128 amount) external nonReentrant {
+    function burn(address debtToken, address to, uint128 amount) external payable nonReentrant {
         _checkUnsettled(debtToken);
 
         Position memory position = _positions[debtToken][to];
@@ -185,7 +185,7 @@ contract VaultManager is
         emit Burn(debtToken, msg.sender, to, amount, _getRelativePrice(debtToken));
     }
 
-    function settle(address debtToken) external nonReentrant returns (uint256 settlePrice) {
+    function settle(address debtToken) external payable nonReentrant returns (uint256 settlePrice) {
         _checkUnsettled(debtToken);
         if (block.timestamp < _configs[debtToken].expiration) revert NotExpired();
 
@@ -196,6 +196,7 @@ contract VaultManager is
 
     function liquidate(address debtToken, address user, uint128 debtToCover, bool skipCallback, bytes calldata data)
         external
+        payable
         nonReentrant
         returns (uint128 debtCovered, uint128 collateralLiquidated)
     {
@@ -239,6 +240,7 @@ contract VaultManager is
 
     function redeem(address debtToken, address to, uint128 amount)
         external
+        payable
         nonReentrant
         returns (uint128 collateralReceived)
     {
@@ -252,7 +254,7 @@ contract VaultManager is
         emit Redeem(debtToken, msg.sender, to, amount, collateralReceived);
     }
 
-    function close(address debtToken, address to) external nonReentrant returns (uint128 collateralReceived) {
+    function close(address debtToken, address to) external payable nonReentrant returns (uint128 collateralReceived) {
         Config storage config = _configs[debtToken];
         _checkSettled(config, debtToken);
 
@@ -272,7 +274,7 @@ contract VaultManager is
         IOracle(priceOracle).updatePrice{value: msg.value}(data);
     }
 
-    function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
+    function permit(address token, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external payable {
         IERC20Permit(token).permit(msg.sender, address(this), value, deadline, v, r, s);
     }
 

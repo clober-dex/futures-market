@@ -35,4 +35,12 @@ contract DeployScript is Script {
 
         vm.stopBroadcast();
     }
+
+    function upgradeVaultManager() public {
+        address oracle = 0x0Ac256AE2a360CB85e57ac1860608ae3372aA0BF;
+        vm.startBroadcast();
+        address newTemplate = address(new VaultManager(address(oracle)));
+        VaultManager(0xAa7a07414d23F1153ED13C702CB84c5DD1319a62).upgradeToAndCall(newTemplate, "");
+        vm.stopBroadcast();
+    }
 }
