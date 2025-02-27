@@ -46,8 +46,22 @@ interface IVaultManager {
 
     /// @notice Emitted when a new vault is created
     /// @param debtToken Address of the debt token created for this vault
-    /// @param config Configuration parameters used to create the vault
-    event Open(address indexed debtToken, Config config);
+    /// @param debtToken Address of the debt token created for this vault
+    /// @param assetId Unique identifier for the underlying asset
+    /// @param collateral Address of the collateral token
+    /// @param expiration Timestamp when the vault expires
+    /// @param ltv Loan-to-Value ratio as a percentage with 1e6 precision
+    /// @param liquidationThreshold Threshold at which positions can be liquidated as a percentage with 1e6 precision
+    /// @param minDebt Minimum debt amount that must be minted
+    event Open(
+        address indexed debtToken,
+        bytes32 assetId,
+        address collateral,
+        uint40 expiration,
+        uint24 ltv,
+        uint24 liquidationThreshold,
+        uint128 minDebt
+    );
 
     /// @notice Emitted when collateral is deposited into a vault
     /// @param debtToken Address of the debt token
@@ -146,13 +160,25 @@ interface IVaultManager {
     function isSettled(address debtToken) external view returns (bool settled);
 
     /// @notice Creates a new vault with the specified configuration
-    /// @param config Configuration parameters for the new vault
+    /// @param assetId Unique identifier for the underlying asset
+    /// @param collateral Address of the collateral token
+    /// @param expiration Timestamp when the vault expires
+    /// @param ltv Loan-to-Value ratio as a percentage with 1e6 precision (e.g. 50% = 500000)
+    /// @param liquidationThreshold Threshold at which positions can be liquidated as a percentage with 1e6 precision (e.g. 75% = 750000)
+    /// @param minDebt Minimum debt amount that must be minted
     /// @param name Name of the debt token
     /// @param symbol Symbol of the debt token
     /// @return debtToken Address of the debt token
-    function open(Config calldata config, string calldata name, string calldata symbol)
-        external
-        returns (address debtToken);
+    function open(
+        bytes32 assetId,
+        address collateral,
+        uint40 expiration,
+        uint24 ltv,
+        uint24 liquidationThreshold,
+        uint128 minDebt,
+        string calldata name,
+        string calldata symbol
+    ) external returns (address debtToken);
 
     /// @notice Deposits collateral into a vault
     /// @param debtToken Address of the debt token

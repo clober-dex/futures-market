@@ -66,23 +66,35 @@ contract VaultManager is
         return _configs[debtToken].settlePrice > 0;
     }
 
-    function open(Config calldata config, string calldata name, string calldata symbol)
-        external
-        nonReentrant
-        onlyOwner
-        returns (address debtToken)
-    {
-        if (config.expiration < block.timestamp) revert InvalidConfig();
-        if (config.ltv > config.liquidationThreshold) revert InvalidConfig();
-        if (config.ltv > PRECISION) revert InvalidConfig();
-        if (config.liquidationThreshold > PRECISION) revert InvalidConfig();
+    function open(
+        bytes32 assetId,
+        address collateral,
+        uint40 expiration,
+        uint24 ltv,
+        uint24 liquidationThreshold,
+        uint128 minDebt,
+        string calldata name,
+        string calldata symbol
+    ) external nonReentrant onlyOwner returns (address debtToken) {
+        if (expiration < block.timestamp) revert InvalidConfig();
+        if (ltv > liquidationThreshold) revert InvalidConfig();
+        if (ltv > PRECISION) revert InvalidConfig();
+        if (liquidationThreshold > PRECISION) revert InvalidConfig();
 
-        bytes32 salt = keccak256(abi.encode(config.assetId, config.collateral, config.expiration));
+        bytes32 salt = keccak256(abi.encode(assetId, collateral, expiration));
         debtToken = Clones.cloneDeterministic(debtTokenImplementation, salt);
         Debt(debtToken).initialize(name, symbol);
 
-        _configs[debtToken] = config;
-        emit Open(debtToken, config);
+        _configs[debtToken] = Config({
+            assetId: assetId,
+            collateral: collateral,
+            expiration: expiration,
+            ltv: ltv,
+            liquidationThreshold: liquidationThreshold,
+            minDebt: minDebt,
+            settlePrice: 0
+        });
+        emit Open(debtToken, assetId, collateral, expiration, ltv, liquidationThreshold, minDebt);
     }
 
     function _transferToken(address token, address to, uint256 amount) internal {

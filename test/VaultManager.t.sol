@@ -56,12 +56,33 @@ contract VaultManagerTest is Test {
         });
     }
 
+    function _open(IVaultManager.Config memory config) internal returns (address debtToken) {
+        debtToken = vaultManager.open(
+            config.assetId,
+            config.collateral,
+            config.expiration,
+            config.ltv,
+            config.liquidationThreshold,
+            config.minDebt,
+            "DebtToken",
+            "DBT"
+        );
+    }
+
     function test_open() public {
         IVaultManager.Config memory config = _defaultConfig();
         vm.expectEmit(false, false, false, true);
-        emit IVaultManager.Open(address(0), config);
+        emit IVaultManager.Open(
+            address(0),
+            config.assetId,
+            config.collateral,
+            config.expiration,
+            config.ltv,
+            config.liquidationThreshold,
+            config.minDebt
+        );
 
-        address debtToken = vaultManager.open(config, "DebtToken", "DBT");
+        address debtToken = _open(config);
         assertTrue(debtToken != address(0));
 
         IVaultManager.Config memory stored = vaultManager.getConfig(debtToken);
@@ -82,28 +103,28 @@ contract VaultManagerTest is Test {
 
         cfg.ltv = 1e6 + 1;
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.InvalidConfig.selector));
-        vaultManager.open(cfg, "DebtToken", "DBT");
+        _open(cfg);
 
         cfg = _defaultConfig();
         cfg.liquidationThreshold = 1e6 + 1;
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.InvalidConfig.selector));
-        vaultManager.open(cfg, "DebtToken", "DBT");
+        _open(cfg);
 
         cfg = _defaultConfig();
         cfg.expiration = uint40(block.timestamp - 1);
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.InvalidConfig.selector));
-        vaultManager.open(cfg, "DebtToken", "DBT");
+        _open(cfg);
 
         cfg = _defaultConfig();
         cfg.liquidationThreshold = cfg.ltv - 1;
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.InvalidConfig.selector));
-        vaultManager.open(cfg, "DebtToken", "DBT");
+        _open(cfg);
     }
 
     function test_openDuplicate() public {
-        vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        _open(_defaultConfig());
         vm.expectRevert(abi.encodeWithSignature("FailedDeployment()"));
-        vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        _open(_defaultConfig());
     }
 
     function test_openOwnership() public {
@@ -113,14 +134,14 @@ contract VaultManagerTest is Test {
         vm.startPrank(nonOwner);
 
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
-        vaultManager.open(config, "DebtToken", "DBT");
+        _open(config);
 
         vm.stopPrank();
     }
 
     function test_deposit() public {
         IVaultManager.Config memory config = _defaultConfig();
-        address debtToken = vaultManager.open(config, "DebtToken", "DBT");
+        address debtToken = _open(config);
 
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
@@ -137,7 +158,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_withdraw() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -154,7 +175,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_withdrawInvalidAmount() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -164,7 +185,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_withdrawExceedsLtv() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -178,7 +199,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_mint() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -195,7 +216,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_mintExceedsLtv() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -205,7 +226,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_burn() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -225,7 +246,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_burnExceedsDebt() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -238,7 +259,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_settle() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         vm.warp(FUTURE_EXPIRATION + 1); // move time forward
 
         uint256 expectedSettlePrice = 150 * 1e18;
@@ -257,14 +278,14 @@ contract VaultManagerTest is Test {
     }
 
     function test_settleBeforeExpiration() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         // Don't warp to the future
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.NotExpired.selector));
         vaultManager.settle(debtToken);
     }
 
     function test_liquidate() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -293,7 +314,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_liquidateSafePosition() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -304,7 +325,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_liquidateExceedsDebt() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -330,7 +351,7 @@ contract VaultManagerTest is Test {
 
     function test_liquidateWithInvalidCallback() public {
         // If liquidator != address(0) but doesn't implement onLiquidation
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -341,7 +362,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_liquidateCallback() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -373,7 +394,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_redeem() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         // deposit + mint
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
@@ -407,7 +428,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_close() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -458,7 +479,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_invalidActionsAfterSettlement() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -483,7 +504,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_invalidActionsBeforeSettlement() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.NotSettled.selector));
         vaultManager.redeem(debtToken, address(this), 10_000 * 1e18);
@@ -520,7 +541,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_permitDepositMint() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
 
         address owner = vm.addr(1);
         uint128 value = 100_000 * 1e6;
@@ -570,7 +591,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_burnWithdraw() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -598,7 +619,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_updateOracleLiquidate() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
@@ -629,7 +650,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_redeemClose() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);
         collateral.approve(address(vaultManager), 100_000 * 1e6);
         vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
