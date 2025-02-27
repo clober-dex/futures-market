@@ -113,10 +113,14 @@ contract VaultManager is
             > uint256(position.debt) * relativePrice * PRECISION * collateralPrecision;
     }
 
-    function deposit(address debtToken, address to, uint128 amount) external nonReentrant {
-        Config storage config = _configs[debtToken];
+    function _checkUnsettled(Config storage config, address debtToken) internal view {
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
         if (isSettled(debtToken)) revert AlreadySettled();
+    }
+
+    function deposit(address debtToken, address to, uint128 amount) external nonReentrant {
+        Config storage config = _configs[debtToken];
+        _checkUnsettled(config, debtToken);
 
         IERC20(config.collateral).safeTransferFrom(msg.sender, address(this), amount);
         _positions[debtToken][to].collateral += amount;
@@ -125,8 +129,7 @@ contract VaultManager is
 
     function withdraw(address debtToken, address to, uint128 amount) external nonReentrant {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(debtToken)) revert AlreadySettled();
+        _checkUnsettled(config, debtToken);
 
         Position memory position = _positions[debtToken][msg.sender];
         if (position.collateral < amount) revert InsufficientCollateral();
@@ -142,8 +145,7 @@ contract VaultManager is
 
     function mint(address debtToken, address to, uint128 amount) external nonReentrant {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(debtToken)) revert AlreadySettled();
+        _checkUnsettled(config, debtToken);
 
         _positions[debtToken][msg.sender].debt += amount;
         uint256 relativePrice = _getRelativePrice(debtToken);
@@ -155,7 +157,7 @@ contract VaultManager is
 
     function burn(address debtToken, address to, uint128 amount) external nonReentrant {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
+        _checkUnsettled(config, debtToken);
 
         Position memory position = _positions[debtToken][to];
         if (position.debt < amount) revert BurnExceedsDebt();
@@ -169,8 +171,7 @@ contract VaultManager is
 
     function settle(address debtToken) external nonReentrant returns (uint256 settlePrice) {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(debtToken)) revert AlreadySettled();
+        _checkUnsettled(config, debtToken);
         if (block.timestamp < config.expiration) revert NotExpired();
 
         settlePrice = _getRelativePrice(debtToken);
@@ -184,8 +185,7 @@ contract VaultManager is
         returns (uint128 debtCovered, uint128 collateralLiquidated)
     {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(debtToken)) revert AlreadySettled();
+        _checkUnsettled(config, debtToken);
         uint256 relativePrice = _getRelativePrice(debtToken);
         if (_isPositionSafe(debtToken, user, relativePrice)) revert PositionSafe();
 
@@ -213,14 +213,18 @@ contract VaultManager is
         emit Liquidate(debtToken, msg.sender, user, debtCovered, collateralLiquidated, relativePrice);
     }
 
+    function _checkSettled(Config storage config, address debtToken) internal view {
+        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
+        if (!isSettled(debtToken)) revert NotSettled();
+    }
+
     function redeem(address debtToken, address to, uint128 amount)
         external
         nonReentrant
         returns (uint128 collateralReceived)
     {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (!isSettled(debtToken)) revert NotSettled();
+        _checkSettled(config, debtToken);
 
         Debt(debtToken).burn(msg.sender, amount);
 
@@ -232,8 +236,7 @@ contract VaultManager is
 
     function close(address debtToken, address to) external nonReentrant returns (uint128 collateralReceived) {
         Config storage config = _configs[debtToken];
-        if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (!isSettled(debtToken)) revert NotSettled();
+        _checkSettled(config, debtToken);
 
         Position memory position = _positions[debtToken][msg.sender];
 

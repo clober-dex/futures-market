@@ -237,25 +237,6 @@ contract VaultManagerTest is Test {
         vaultManager.burn(debtToken, address(this), 100 * 1e18);
     }
 
-    function test_burnAfterSettlement() public {
-        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
-        collateral.mint(address(this), 100_000 * 1e6);
-        collateral.approve(address(vaultManager), 100_000 * 1e6);
-        vaultManager.deposit(debtToken, address(this), 100_000 * 1e6);
-        vaultManager.mint(debtToken, address(this), 40 * 1e18);
-
-        // Move time forward to after expiration
-        vm.warp(FUTURE_EXPIRATION + 1);
-
-        // Settle the vault
-        vaultManager.settle(debtToken);
-
-        // Burn after settlement is allowed
-        vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Burn(debtToken, address(this), address(this), 20 * 1e18, 150 * 1e18);
-        vaultManager.burn(debtToken, address(this), 20 * 1e18);
-    }
-
     function test_settle() public {
         address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         vm.warp(FUTURE_EXPIRATION + 1); // move time forward
@@ -493,6 +474,9 @@ contract VaultManagerTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
         vaultManager.mint(debtToken, address(this), 10_000 * 1e18);
+
+        vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
+        vaultManager.burn(debtToken, address(this), 10_000 * 1e18);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
         vaultManager.liquidate(debtToken, address(this), 10_000 * 1e18, true, "");
