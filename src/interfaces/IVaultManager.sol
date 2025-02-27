@@ -129,16 +129,6 @@ interface IVaultManager {
     /// @return oracle Address of the price oracle contract
     function priceOracle() external view returns (address oracle);
 
-    /// @notice Predicts the address of the debt token for a given salt value
-    /// @param assetId Identifier of the debt asset in the oracle
-    /// @param collateral Address of the collateral token
-    /// @param expiration Timestamp when the vault expires
-    /// @return debtToken Address of the predicted debt token
-    function predictDebtToken(bytes32 assetId, address collateral, uint40 expiration)
-        external
-        view
-        returns (address debtToken);
-
     /// @notice Retrieves the configuration for a specific vault
     /// @param debtToken Address of the debt token
     /// @return config Config struct containing vault parameters

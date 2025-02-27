@@ -54,11 +54,6 @@ contract VaultManager is
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function predictDebtToken(bytes32 assetId, address collateral, uint40 expiration) external view returns (address) {
-        bytes32 salt = keccak256(abi.encode(assetId, collateral, expiration));
-        return Clones.predictDeterministicAddress(debtTokenImplementation, salt);
-    }
-
     function getConfig(address debtToken) external view returns (Config memory) {
         return _configs[debtToken];
     }
