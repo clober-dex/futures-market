@@ -59,13 +59,12 @@ contract VaultManagerTest is Test {
     function test_open() public {
         IVaultManager.Config memory config = _defaultConfig();
         vm.expectEmit(false, false, false, true);
-        emit IVaultManager.Open(bytes32(0), address(0), config);
+        emit IVaultManager.Open(address(0), config);
 
-        (bytes32 vaultId, address debtToken) = vaultManager.open(config, "DebtToken", "DBT");
-        assertTrue(vaultId != bytes32(0));
+        address debtToken = vaultManager.open(config, "DebtToken", "DBT");
         assertTrue(debtToken != address(0));
 
-        IVaultManager.Config memory stored = vaultManager.getConfig(vaultId);
+        IVaultManager.Config memory stored = vaultManager.getConfig(debtToken);
         assertEq(stored.assetId, config.assetId);
         assertEq(stored.collateral, config.collateral);
         assertEq(stored.expiration, config.expiration);
@@ -103,7 +102,7 @@ contract VaultManagerTest is Test {
 
     function test_openDuplicate() public {
         vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
-        vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultAlreadyExists.selector));
+        vm.expectRevert(abi.encodeWithSignature("FailedDeployment()"));
         vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
     }
 
@@ -121,191 +120,191 @@ contract VaultManagerTest is Test {
 
     function test_deposit() public {
         IVaultManager.Config memory config = _defaultConfig();
-        (bytes32 vaultId,) = vaultManager.open(config, "DebtToken", "DBT");
+        address debtToken = vaultManager.open(config, "DebtToken", "DBT");
 
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Deposit(vaultId, address(this), RECEIVER, 50_000);
+        emit IVaultManager.Deposit(debtToken, address(this), RECEIVER, 50_000);
 
-        vaultManager.deposit(vaultId, RECEIVER, 50_000);
+        vaultManager.deposit(debtToken, RECEIVER, 50_000);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, RECEIVER);
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, RECEIVER);
         assertEq(position.collateral, 50_000, "collateral mismatch");
         assertEq(position.debt, 0, "debt should remain 0");
         assertEq(collateral.balanceOf(address(vaultManager)), 50_000, "vaultManager collateral balance mismatch");
     }
 
     function test_withdraw() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Withdraw(vaultId, address(this), RECEIVER, 50_000);
+        emit IVaultManager.Withdraw(debtToken, address(this), RECEIVER, 50_000);
 
-        vaultManager.withdraw(vaultId, RECEIVER, 50_000);
+        vaultManager.withdraw(debtToken, RECEIVER, 50_000);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.collateral, 50_000, "collateral mismatch after withdraw");
         assertEq(position.debt, 0, "debt mismatch after withdraw");
         assertEq(collateral.balanceOf(RECEIVER), 50_000, "receiver collateral balance mismatch");
     }
 
     function test_withdrawInvalidAmount() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.InsufficientCollateral.selector));
-        vaultManager.withdraw(vaultId, address(this), 200_000);
+        vaultManager.withdraw(debtToken, address(this), 200_000);
     }
 
     function test_withdrawExceedsLtv() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
         // Mint some debt so LTV is borderline
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.mint(debtToken, address(this), 200);
 
         // Attempt to withdraw enough to exceed LTV
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.LTVExceeded.selector));
-        vaultManager.withdraw(vaultId, address(this), 90_000);
+        vaultManager.withdraw(debtToken, address(this), 90_000);
     }
 
     function test_mint() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Mint(vaultId, address(this), RECEIVER, 200, 150 * 1e18);
+        emit IVaultManager.Mint(debtToken, address(this), RECEIVER, 200, 150 * 1e18);
 
-        vaultManager.mint(vaultId, RECEIVER, 200);
+        vaultManager.mint(debtToken, RECEIVER, 200);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.debt, 200, "debt mismatch after mint");
         assertEq(position.collateral, 100_000, "collateral mismatch after mint");
         assertEq(IERC20(debtToken).balanceOf(RECEIVER), 200, "receiver debt balance mismatch");
     }
 
     function test_mintExceedsLtv() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.LTVExceeded.selector));
-        vaultManager.mint(vaultId, address(this), 400);
+        vaultManager.mint(debtToken, address(this), 400);
     }
 
     function test_burn() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
-        vaultManager.mint(vaultId, RECEIVER, 100);
+        vaultManager.mint(debtToken, RECEIVER, 100);
 
         // Expect burn event
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Burn(vaultId, RECEIVER, address(this), 80, 150 * 1e18);
+        emit IVaultManager.Burn(debtToken, RECEIVER, address(this), 80, 150 * 1e18);
 
         vm.prank(RECEIVER);
-        vaultManager.burn(vaultId, address(this), 80);
+        vaultManager.burn(debtToken, address(this), 80);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.debt, 20, "debt mismatch after burn");
         assertEq(IERC20(debtToken).balanceOf(RECEIVER), 20, "debt balance mismatch after burn");
     }
 
     function test_burnExceedsDebt() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
-        vaultManager.mint(vaultId, address(this), 40);
+        vaultManager.mint(debtToken, address(this), 40);
 
         // Attempt to burn more than minted
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.BurnExceedsDebt.selector));
-        vaultManager.burn(vaultId, address(this), 100);
+        vaultManager.burn(debtToken, address(this), 100);
     }
 
     function test_burnAfterSettlement() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 40);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 40);
 
         // Move time forward to after expiration
         vm.warp(FUTURE_EXPIRATION + 1);
 
         // Settle the vault
-        vaultManager.settle(vaultId);
+        vaultManager.settle(debtToken);
 
         // Burn after settlement is allowed
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Burn(vaultId, address(this), address(this), 20, 150 * 1e18);
-        vaultManager.burn(vaultId, address(this), 20);
+        emit IVaultManager.Burn(debtToken, address(this), address(this), 20, 150 * 1e18);
+        vaultManager.burn(debtToken, address(this), 20);
     }
 
     function test_settle() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         vm.warp(FUTURE_EXPIRATION + 1); // move time forward
 
         uint256 expectedSettlePrice = 150 * 1e18;
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Settle(vaultId, expectedSettlePrice);
+        emit IVaultManager.Settle(debtToken, expectedSettlePrice);
 
-        uint256 settlePrice = vaultManager.settle(vaultId);
+        uint256 settlePrice = vaultManager.settle(debtToken);
         // Check that isSettled is now true
-        assertTrue(vaultManager.isSettled(vaultId), "Vault should be settled");
+        assertTrue(vaultManager.isSettled(debtToken), "Vault should be settled");
         assertEq(settlePrice, expectedSettlePrice, "settlePrice mismatch");
 
         // Check that returned settlePrice is stored
-        IVaultManager.Config memory config = vaultManager.getConfig(vaultId);
+        IVaultManager.Config memory config = vaultManager.getConfig(debtToken);
         assertEq(config.settlePrice, settlePrice, "settlePrice mismatch");
     }
 
     function test_settleBeforeExpiration() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         // Don't warp to the future
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.NotExpired.selector));
-        vaultManager.settle(vaultId);
+        vaultManager.settle(debtToken);
     }
 
     function test_liquidate() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, LIQUIDATOR, 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, LIQUIDATOR, 200);
 
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(800 * 1e18));
 
         // Liquidator calls liquidate
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Liquidate(vaultId, LIQUIDATOR, address(this), 80, 40_000, 400 * 1e18);
+        emit IVaultManager.Liquidate(debtToken, LIQUIDATOR, address(this), 80, 40_000, 400 * 1e18);
 
         vm.startPrank(LIQUIDATOR);
         (uint128 debtCovered, uint128 collateralLiquidated) =
-            vaultManager.liquidate(vaultId, address(this), 80, true, "");
+            vaultManager.liquidate(debtToken, address(this), 80, true, "");
 
         // Check the returned values
         assertEq(debtCovered, 80, "debtCovered mismatch");
         assertEq(collateralLiquidated, 40_000, "collateralLiquidated mismatch");
 
         // Check user's position now
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.debt, 120, "Remaining debt mismatch");
         assertEq(position.collateral, 60_000, "Remaining collateral mismatch");
         assertEq(IERC20(debtToken).balanceOf(LIQUIDATOR), 120, "debt balance mismatch");
@@ -313,35 +312,35 @@ contract VaultManagerTest is Test {
     }
 
     function test_liquidateSafePosition() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.PositionSafe.selector));
-        vaultManager.liquidate(vaultId, address(this), 200, true, "");
+        vaultManager.liquidate(debtToken, address(this), 200, true, "");
     }
 
     function test_liquidateExceedsDebt() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, LIQUIDATOR, 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, LIQUIDATOR, 200);
 
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(800 * 1e18));
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Liquidate(vaultId, LIQUIDATOR, address(this), 200, 100_000, 400 * 1e18);
+        emit IVaultManager.Liquidate(debtToken, LIQUIDATOR, address(this), 200, 100_000, 400 * 1e18);
 
         vm.startPrank(LIQUIDATOR);
         (uint128 debtCovered, uint128 collateralLiquidated) =
-            vaultManager.liquidate(vaultId, address(this), 240, true, "");
+            vaultManager.liquidate(debtToken, address(this), 240, true, "");
         assertEq(debtCovered, 200, "Should only cover up to actual debt");
         assertEq(collateralLiquidated, 100_000, "Should liquidate up to collateral");
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.debt, 0, "Remaining debt mismatch");
         assertEq(position.collateral, 0, "Remaining collateral mismatch");
         assertEq(IERC20(debtToken).balanceOf(LIQUIDATOR), 0, "debt balance mismatch");
@@ -350,40 +349,40 @@ contract VaultManagerTest is Test {
 
     function test_liquidateWithInvalidCallback() public {
         // If liquidator != address(0) but doesn't implement onLiquidation
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
         vm.expectRevert();
-        vaultManager.liquidate(vaultId, address(this), 10_000, false, "0x");
+        vaultManager.liquidate(debtToken, address(this), 10_000, false, "0x");
     }
 
     function test_liquidateCallback() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(liquidator), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(liquidator), 200);
 
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(800 * 1e18));
 
         bytes memory callbackData = abi.encode("test data");
         bytes32 expectedFlag =
-            keccak256(abi.encode(vaultId, address(liquidator), address(this), 120, 60_000, 400 * 1e18, callbackData));
+            keccak256(abi.encode(debtToken, address(liquidator), address(this), 120, 60_000, 400 * 1e18, callbackData));
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Liquidate(vaultId, address(liquidator), address(this), 120, 60_000, 400 * 1e18);
+        emit IVaultManager.Liquidate(debtToken, address(liquidator), address(this), 120, 60_000, 400 * 1e18);
 
         (uint128 debtCovered, uint128 collateralLiquidated) =
-            liquidator.liquidate(vaultId, address(this), 120, callbackData);
+            liquidator.liquidate(debtToken, address(this), 120, callbackData);
 
         assertEq(debtCovered, 120, "debtCovered mismatch");
         assertEq(collateralLiquidated, 60_000, "collateralLiquidated mismatch");
         assertEq(liquidator.flag(), expectedFlag, "liquidator flag mismatch");
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.debt, 80, "Remaining debt mismatch");
         assertEq(position.collateral, 40_000, "Remaining collateral mismatch");
         assertEq(IERC20(debtToken).balanceOf(address(liquidator)), 80, "debt balance mismatch");
@@ -391,23 +390,23 @@ contract VaultManagerTest is Test {
     }
 
     function test_redeem() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         // deposit + mint
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(400 * 1e18));
 
         // Advance time, settle
         vm.warp(FUTURE_EXPIRATION + 1);
-        vaultManager.settle(vaultId);
+        vaultManager.settle(debtToken);
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Redeem(vaultId, address(this), RECEIVER, 100, 20_000);
+        emit IVaultManager.Redeem(debtToken, address(this), RECEIVER, 100, 20_000);
 
-        uint128 collateralReceived = vaultManager.redeem(vaultId, RECEIVER, 100);
+        uint128 collateralReceived = vaultManager.redeem(debtToken, RECEIVER, 100);
         assertEq(collateralReceived, 20_000, "collateralReceived mismatch (example value)");
         assertEq(IERC20(debtToken).balanceOf(address(this)), 100, "debt balance mismatch");
         assertEq(collateral.balanceOf(RECEIVER), 20_000, "collateral balance mismatch");
@@ -416,95 +415,95 @@ contract VaultManagerTest is Test {
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(99999999 * 1e18));
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Redeem(vaultId, address(this), RECEIVER, 100, 20_000);
+        emit IVaultManager.Redeem(debtToken, address(this), RECEIVER, 100, 20_000);
 
-        collateralReceived = vaultManager.redeem(vaultId, RECEIVER, 100);
+        collateralReceived = vaultManager.redeem(debtToken, RECEIVER, 100);
         assertEq(collateralReceived, 20_000, "collateralReceived mismatch (example value)");
         assertEq(IERC20(debtToken).balanceOf(address(this)), 0, "debt balance mismatch");
         assertEq(collateral.balanceOf(RECEIVER), 40_000, "collateral balance mismatch");
     }
 
     function test_close() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(400 * 1e18));
 
         // Move time forward, settle
         vm.warp(FUTURE_EXPIRATION + 1);
-        vaultManager.settle(vaultId);
+        vaultManager.settle(debtToken);
 
         // If close() allows user to withdraw leftover collateral minus debt portion
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Close(vaultId, address(this), RECEIVER, 60_000);
+        emit IVaultManager.Close(debtToken, address(this), RECEIVER, 60_000);
 
-        uint128 collateralReceived = vaultManager.close(vaultId, RECEIVER);
+        uint128 collateralReceived = vaultManager.close(debtToken, RECEIVER);
         assertEq(collateralReceived, 60_000, "collateralReceived mismatch");
 
         // Check that user's position is now zero
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.collateral, 0, "Position collateral should be 0 after close");
         assertEq(position.debt, 0, "Position debt should be 0 after close");
         assertEq(collateral.balanceOf(RECEIVER), 60_000, "collateral balance mismatch");
     }
 
     function test_actionsWithInvalidId() public {
-        bytes32 invalidId = keccak256("NOT_EXIST");
+        address invalidAddress = address(0x1234567890123456789012345678901234567890);
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.withdraw(invalidId, address(this), 1);
+        vaultManager.withdraw(invalidAddress, address(this), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.deposit(invalidId, address(this), 1);
+        vaultManager.deposit(invalidAddress, address(this), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.mint(invalidId, address(this), 1);
+        vaultManager.mint(invalidAddress, address(this), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.burn(invalidId, address(this), 1);
+        vaultManager.burn(invalidAddress, address(this), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.liquidate(invalidId, address(this), 1, true, "");
+        vaultManager.liquidate(invalidAddress, address(this), 1, true, "");
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.redeem(invalidId, address(this), 1);
+        vaultManager.redeem(invalidAddress, address(this), 1);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.VaultDoesNotExist.selector));
-        vaultManager.close(invalidId, address(this));
+        vaultManager.close(invalidAddress, address(this));
     }
 
     function test_invalidActionsAfterSettlement() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
+        vaultManager.deposit(debtToken, address(this), 100_000);
 
         vm.warp(FUTURE_EXPIRATION + 1);
-        vaultManager.settle(vaultId);
+        vaultManager.settle(debtToken);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
-        vaultManager.deposit(vaultId, address(this), 1_000);
+        vaultManager.deposit(debtToken, address(this), 1_000);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
-        vaultManager.withdraw(vaultId, address(this), 1_000);
+        vaultManager.withdraw(debtToken, address(this), 1_000);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
-        vaultManager.mint(vaultId, address(this), 10_000);
+        vaultManager.mint(debtToken, address(this), 10_000);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.AlreadySettled.selector));
-        vaultManager.liquidate(vaultId, address(this), 10_000, true, "");
+        vaultManager.liquidate(debtToken, address(this), 10_000, true, "");
     }
 
     function test_invalidActionsBeforeSettlement() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.NotSettled.selector));
-        vaultManager.redeem(vaultId, address(this), 10_000);
+        vaultManager.redeem(debtToken, address(this), 10_000);
 
         vm.expectRevert(abi.encodeWithSelector(IVaultManager.NotSettled.selector));
-        vaultManager.close(vaultId, address(this));
+        vaultManager.close(debtToken, address(this));
     }
 
     function test_updateOracle() public {
@@ -535,7 +534,7 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_permitDepositMint() public {
-        (bytes32 vaultId,) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
 
         address owner = vm.addr(1);
         uint128 value = 100_000;
@@ -563,10 +562,10 @@ contract VaultManagerTest is Test {
         }
 
         // 2) deposit call
-        bytes memory depositData = abi.encodeWithSelector(vaultManager.deposit.selector, vaultId, owner, value);
+        bytes memory depositData = abi.encodeWithSelector(vaultManager.deposit.selector, debtToken, owner, value);
 
         // 3) mint call
-        bytes memory mintData = abi.encodeWithSelector(vaultManager.mint.selector, vaultId, owner, 200);
+        bytes memory mintData = abi.encodeWithSelector(vaultManager.mint.selector, debtToken, owner, 200);
 
         bytes[] memory calls = new bytes[](3);
         calls[0] = permitData;
@@ -574,38 +573,38 @@ contract VaultManagerTest is Test {
         calls[2] = mintData;
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Deposit(vaultId, owner, owner, value);
+        emit IVaultManager.Deposit(debtToken, owner, owner, value);
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Mint(vaultId, owner, owner, 200, 150 * 1e18);
+        emit IVaultManager.Mint(debtToken, owner, owner, 200, 150 * 1e18);
         vaultManager.multicall(calls);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, owner);
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, owner);
         assertEq(position.collateral, value, "collateral mismatch");
         assertEq(position.debt, 200, "debt mismatch");
     }
 
     function test_multicall_burnWithdraw() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
-        bytes memory burnData = abi.encodeWithSelector(vaultManager.burn.selector, vaultId, address(this), 80);
+        bytes memory burnData = abi.encodeWithSelector(vaultManager.burn.selector, debtToken, address(this), 80);
         bytes memory withdrawData =
-            abi.encodeWithSelector(vaultManager.withdraw.selector, vaultId, address(this), 30_000);
+            abi.encodeWithSelector(vaultManager.withdraw.selector, debtToken, address(this), 30_000);
 
         bytes[] memory calls = new bytes[](2);
         calls[0] = burnData;
         calls[1] = withdrawData;
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Burn(vaultId, address(this), address(this), 80, 150 * 1e18);
+        emit IVaultManager.Burn(debtToken, address(this), address(this), 80, 150 * 1e18);
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Withdraw(vaultId, address(this), address(this), 30_000);
+        emit IVaultManager.Withdraw(debtToken, address(this), address(this), 30_000);
         vaultManager.multicall(calls);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.collateral, 70_000, "collateral mismatch");
         assertEq(position.debt, 120, "debt mismatch");
         assertEq(IERC20(debtToken).balanceOf(address(this)), 120, "debt balance mismatch");
@@ -613,11 +612,11 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_updateOracleLiquidate() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
         bytes memory updateData = abi.encodeWithSelector(
             vaultManager.updateOracle.selector,
@@ -626,7 +625,7 @@ contract VaultManagerTest is Test {
         );
 
         bytes memory liquidateData =
-            abi.encodeWithSelector(vaultManager.liquidate.selector, vaultId, address(this), 140, true, "");
+            abi.encodeWithSelector(vaultManager.liquidate.selector, debtToken, address(this), 140, true, "");
 
         bytes[] memory calls = new bytes[](2);
         calls[0] = updateData;
@@ -635,10 +634,10 @@ contract VaultManagerTest is Test {
         vm.expectEmit(address(oracle));
         emit IOracle.PriceUpdated(DEBT_ASSET_ID, 800 * 1e18);
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Liquidate(vaultId, address(this), address(this), 140, 70_000, 400 * 1e18);
+        emit IVaultManager.Liquidate(debtToken, address(this), address(this), 140, 70_000, 400 * 1e18);
         vaultManager.multicall(calls);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.collateral, 30_000, "collateral mismatch");
         assertEq(position.debt, 60, "debt mismatch");
         assertEq(IERC20(debtToken).balanceOf(address(this)), 60, "debt balance mismatch");
@@ -646,31 +645,31 @@ contract VaultManagerTest is Test {
     }
 
     function test_multicall_redeemClose() public {
-        (bytes32 vaultId, address debtToken) = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
+        address debtToken = vaultManager.open(_defaultConfig(), "DebtToken", "DBT");
         collateral.mint(address(this), 100_000);
         collateral.approve(address(vaultManager), 100_000);
-        vaultManager.deposit(vaultId, address(this), 100_000);
-        vaultManager.mint(vaultId, address(this), 200);
+        vaultManager.deposit(debtToken, address(this), 100_000);
+        vaultManager.mint(debtToken, address(this), 200);
 
         oracle.updatePrice(DEBT_ASSET_ID, abi.encode(400 * 1e18));
 
         vm.warp(FUTURE_EXPIRATION + 1);
-        vaultManager.settle(vaultId);
+        vaultManager.settle(debtToken);
 
-        bytes memory redeemData = abi.encodeWithSelector(vaultManager.redeem.selector, vaultId, RECEIVER, 200);
-        bytes memory closeData = abi.encodeWithSelector(vaultManager.close.selector, vaultId, address(this));
+        bytes memory redeemData = abi.encodeWithSelector(vaultManager.redeem.selector, debtToken, RECEIVER, 200);
+        bytes memory closeData = abi.encodeWithSelector(vaultManager.close.selector, debtToken, address(this));
 
         bytes[] memory calls = new bytes[](2);
         calls[0] = redeemData;
         calls[1] = closeData;
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Redeem(vaultId, address(this), RECEIVER, 200, 40_000);
+        emit IVaultManager.Redeem(debtToken, address(this), RECEIVER, 200, 40_000);
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Close(vaultId, address(this), address(this), 60_000);
+        emit IVaultManager.Close(debtToken, address(this), address(this), 60_000);
         vaultManager.multicall(calls);
 
-        IVaultManager.Position memory position = vaultManager.getPosition(vaultId, address(this));
+        IVaultManager.Position memory position = vaultManager.getPosition(debtToken, address(this));
         assertEq(position.collateral, 0, "collateral mismatch");
         assertEq(position.debt, 0, "debt mismatch");
         assertEq(collateral.balanceOf(address(this)), 60_000, "collateral balance mismatch");

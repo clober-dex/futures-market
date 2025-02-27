@@ -38,8 +38,8 @@ contract VaultManager is
     uint256 public immutable pricePrecision;
 
     address public debtTokenImplementation;
-    mapping(bytes32 => Config) internal _configs;
-    mapping(bytes32 => mapping(address => Position)) internal _positions;
+    mapping(address debtToken => Config) internal _configs;
+    mapping(address debtToken => mapping(address user => Position)) internal _positions;
 
     constructor(address _priceOracle) {
         priceOracle = _priceOracle;
@@ -53,144 +53,140 @@ contract VaultManager is
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function encodeId(bytes32 assetId, address collateral, uint40 expiration) public pure returns (bytes32) {
-        return keccak256(abi.encode(assetId, collateral, expiration));
+    function predictDebtToken(bytes32 assetId, address collateral, uint40 expiration) external view returns (address) {
+        bytes32 salt = keccak256(abi.encode(assetId, collateral, expiration));
+        return Clones.predictDeterministicAddress(debtTokenImplementation, salt);
     }
 
-    function getConfig(bytes32 id) external view returns (Config memory) {
-        return _configs[id];
+    function getConfig(address debtToken) external view returns (Config memory) {
+        return _configs[debtToken];
     }
 
-    function getPosition(bytes32 id, address user) external view returns (Position memory position) {
-        return _positions[id][user];
+    function getPosition(address debtToken, address user) external view returns (Position memory) {
+        return _positions[debtToken][user];
     }
 
-    function isSettled(bytes32 id) public view returns (bool) {
-        return _configs[id].settlePrice > 0;
-    }
-
-    function getDebtToken(bytes32 id) public view returns (address) {
-        return Clones.predictDeterministicAddress(debtTokenImplementation, id);
+    function isSettled(address debtToken) public view returns (bool) {
+        return _configs[debtToken].settlePrice > 0;
     }
 
     function open(Config calldata config, string calldata name, string calldata symbol)
         external
         nonReentrant
         onlyOwner
-        returns (bytes32 id, address debtToken)
+        returns (address debtToken)
     {
-        id = encodeId(config.assetId, config.collateral, config.expiration);
-        if (_configs[id].assetId != bytes32(0)) revert VaultAlreadyExists();
         if (config.expiration < block.timestamp) revert InvalidConfig();
         if (config.ltv > config.liquidationThreshold) revert InvalidConfig();
         if (config.ltv > PRECISION) revert InvalidConfig();
         if (config.liquidationThreshold > PRECISION) revert InvalidConfig();
 
-        debtToken = Clones.cloneDeterministic(debtTokenImplementation, id);
+        bytes32 salt = keccak256(abi.encode(config.assetId, config.collateral, config.expiration));
+        debtToken = Clones.cloneDeterministic(debtTokenImplementation, salt);
         Debt(debtToken).initialize(name, symbol);
 
-        _configs[id] = config;
-        emit Open(id, debtToken, config);
+        _configs[debtToken] = config;
+        emit Open(debtToken, config);
     }
 
-    function _getRelativePrice(bytes32 id) internal view returns (uint256) {
-        Config storage config = _configs[id];
+    function _getRelativePrice(address debtToken) internal view returns (uint256) {
+        Config storage config = _configs[debtToken];
         uint256 collateralPrice = IOracle(priceOracle).getAssetPrice(config.collateral);
         uint256 debtPrice = IOracle(priceOracle).getAssetPrice(config.assetId);
         return debtPrice * pricePrecision / collateralPrice;
     }
 
-    function _isUnderLtv(bytes32 id, address user, uint256 relativePrice) internal view returns (bool) {
-        Config storage config = _configs[id];
-        Position memory position = _positions[id][user];
+    function _isUnderLtv(address debtToken, address user, uint256 relativePrice) internal view returns (bool) {
+        Config storage config = _configs[debtToken];
+        Position memory position = _positions[debtToken][user];
         return uint256(position.collateral) * config.ltv * pricePrecision
             > uint256(position.debt) * relativePrice * PRECISION;
     }
 
-    function _isPositionSafe(bytes32 id, address user, uint256 relativePrice) internal view returns (bool) {
-        Config storage config = _configs[id];
-        Position memory position = _positions[id][user];
+    function _isPositionSafe(address debtToken, address user, uint256 relativePrice) internal view returns (bool) {
+        Config storage config = _configs[debtToken];
+        Position memory position = _positions[debtToken][user];
         return uint256(position.collateral) * config.liquidationThreshold * pricePrecision
             > uint256(position.debt) * relativePrice * PRECISION;
     }
 
-    function deposit(bytes32 id, address to, uint128 amount) external nonReentrant {
-        Config storage config = _configs[id];
+    function deposit(address debtToken, address to, uint128 amount) external nonReentrant {
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(id)) revert AlreadySettled();
+        if (isSettled(debtToken)) revert AlreadySettled();
 
         IERC20(config.collateral).safeTransferFrom(msg.sender, address(this), amount);
-        _positions[id][to].collateral += amount;
-        emit Deposit(id, msg.sender, to, amount);
+        _positions[debtToken][to].collateral += amount;
+        emit Deposit(debtToken, msg.sender, to, amount);
     }
 
-    function withdraw(bytes32 id, address to, uint128 amount) external nonReentrant {
-        Config storage config = _configs[id];
+    function withdraw(address debtToken, address to, uint128 amount) external nonReentrant {
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(id)) revert AlreadySettled();
+        if (isSettled(debtToken)) revert AlreadySettled();
 
-        Position memory position = _positions[id][msg.sender];
+        Position memory position = _positions[debtToken][msg.sender];
         if (position.collateral < amount) revert InsufficientCollateral();
         unchecked {
-            _positions[id][msg.sender].collateral = position.collateral - amount;
+            _positions[debtToken][msg.sender].collateral = position.collateral - amount;
         }
-        uint256 relativePrice = _getRelativePrice(id);
-        if (!_isUnderLtv(id, msg.sender, relativePrice)) revert LTVExceeded();
+        uint256 relativePrice = _getRelativePrice(debtToken);
+        if (!_isUnderLtv(debtToken, msg.sender, relativePrice)) revert LTVExceeded();
 
         IERC20(config.collateral).safeTransfer(to, amount);
-        emit Withdraw(id, msg.sender, to, amount);
+        emit Withdraw(debtToken, msg.sender, to, amount);
     }
 
-    function mint(bytes32 id, address to, uint128 amount) external nonReentrant {
-        Config storage config = _configs[id];
+    function mint(address debtToken, address to, uint128 amount) external nonReentrant {
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(id)) revert AlreadySettled();
+        if (isSettled(debtToken)) revert AlreadySettled();
 
-        _positions[id][msg.sender].debt += amount;
-        uint256 relativePrice = _getRelativePrice(id);
-        if (!_isUnderLtv(id, msg.sender, relativePrice)) revert LTVExceeded();
+        _positions[debtToken][msg.sender].debt += amount;
+        uint256 relativePrice = _getRelativePrice(debtToken);
+        if (!_isUnderLtv(debtToken, msg.sender, relativePrice)) revert LTVExceeded();
 
-        Debt(getDebtToken(id)).mint(to, amount);
-        emit Mint(id, msg.sender, to, amount, relativePrice);
+        Debt(debtToken).mint(to, amount);
+        emit Mint(debtToken, msg.sender, to, amount, relativePrice);
     }
 
-    function burn(bytes32 id, address to, uint128 amount) external nonReentrant {
-        Config storage config = _configs[id];
+    function burn(address debtToken, address to, uint128 amount) external nonReentrant {
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
 
-        Position memory position = _positions[id][to];
+        Position memory position = _positions[debtToken][to];
         if (position.debt < amount) revert BurnExceedsDebt();
 
-        Debt(getDebtToken(id)).burn(msg.sender, amount);
+        Debt(debtToken).burn(msg.sender, amount);
         unchecked {
-            _positions[id][to].debt = position.debt - amount;
+            _positions[debtToken][to].debt = position.debt - amount;
         }
-        emit Burn(id, msg.sender, to, amount, _getRelativePrice(id));
+        emit Burn(debtToken, msg.sender, to, amount, _getRelativePrice(debtToken));
     }
 
-    function settle(bytes32 id) external nonReentrant returns (uint256 settlePrice) {
-        Config storage config = _configs[id];
+    function settle(address debtToken) external nonReentrant returns (uint256 settlePrice) {
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(id)) revert AlreadySettled();
+        if (isSettled(debtToken)) revert AlreadySettled();
         if (block.timestamp < config.expiration) revert NotExpired();
 
-        settlePrice = _getRelativePrice(id);
-        _configs[id].settlePrice = settlePrice;
-        emit Settle(id, settlePrice);
+        settlePrice = _getRelativePrice(debtToken);
+        _configs[debtToken].settlePrice = settlePrice;
+        emit Settle(debtToken, settlePrice);
     }
 
-    function liquidate(bytes32 id, address user, uint128 debtToCover, bool skipCallback, bytes calldata data)
+    function liquidate(address debtToken, address user, uint128 debtToCover, bool skipCallback, bytes calldata data)
         external
         nonReentrant
         returns (uint128 debtCovered, uint128 collateralLiquidated)
     {
-        Config storage config = _configs[id];
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (isSettled(id)) revert AlreadySettled();
-        uint256 relativePrice = _getRelativePrice(id);
-        if (_isPositionSafe(id, user, relativePrice)) revert PositionSafe();
+        if (isSettled(debtToken)) revert AlreadySettled();
+        uint256 relativePrice = _getRelativePrice(debtToken);
+        if (_isPositionSafe(debtToken, user, relativePrice)) revert PositionSafe();
 
-        Position memory position = _positions[id][user];
+        Position memory position = _positions[debtToken][user];
         if (position.debt < debtToCover) {
             debtCovered = position.debt;
             collateralLiquidated = position.collateral;
@@ -199,49 +195,49 @@ contract VaultManager is
             collateralLiquidated = uint128(uint256(position.collateral) * debtCovered / position.debt);
         }
         unchecked {
-            _positions[id][user].debt = position.debt - debtCovered;
-            _positions[id][user].collateral = position.collateral - collateralLiquidated;
+            _positions[debtToken][user].debt = position.debt - debtCovered;
+            _positions[debtToken][user].collateral = position.collateral - collateralLiquidated;
         }
 
         IERC20(config.collateral).safeTransfer(msg.sender, collateralLiquidated);
         if (!skipCallback) {
             // todo: separate caller and liquidator
             ILiquidator(msg.sender).onLiquidation(
-                id, msg.sender, user, debtCovered, collateralLiquidated, relativePrice, data
+                debtToken, msg.sender, user, debtCovered, collateralLiquidated, relativePrice, data
             );
         }
-        Debt(getDebtToken(id)).burn(msg.sender, debtCovered);
+        Debt(debtToken).burn(msg.sender, debtCovered);
 
-        emit Liquidate(id, msg.sender, user, debtCovered, collateralLiquidated, relativePrice);
+        emit Liquidate(debtToken, msg.sender, user, debtCovered, collateralLiquidated, relativePrice);
     }
 
-    function redeem(bytes32 id, address to, uint128 amount)
+    function redeem(address debtToken, address to, uint128 amount)
         external
         nonReentrant
         returns (uint128 collateralReceived)
     {
-        Config storage config = _configs[id];
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (!isSettled(id)) revert NotSettled();
+        if (!isSettled(debtToken)) revert NotSettled();
 
-        Debt(getDebtToken(id)).burn(msg.sender, amount);
+        Debt(debtToken).burn(msg.sender, amount);
 
         collateralReceived = uint128(uint256(amount) * config.settlePrice / pricePrecision);
         IERC20(config.collateral).safeTransfer(to, collateralReceived);
-        emit Redeem(id, msg.sender, to, amount, collateralReceived);
+        emit Redeem(debtToken, msg.sender, to, amount, collateralReceived);
     }
 
-    function close(bytes32 id, address to) external nonReentrant returns (uint128 collateralReceived) {
-        Config storage config = _configs[id];
+    function close(address debtToken, address to) external nonReentrant returns (uint128 collateralReceived) {
+        Config storage config = _configs[debtToken];
         if (config.assetId == bytes32(0)) revert VaultDoesNotExist();
-        if (!isSettled(id)) revert NotSettled();
+        if (!isSettled(debtToken)) revert NotSettled();
 
-        Position memory position = _positions[id][msg.sender];
+        Position memory position = _positions[debtToken][msg.sender];
         collateralReceived = position.collateral - uint128(uint256(position.debt) * config.settlePrice / pricePrecision);
         IERC20(config.collateral).safeTransfer(to, collateralReceived);
-        delete _positions[id][msg.sender];
+        delete _positions[debtToken][msg.sender];
 
-        emit Close(id, msg.sender, to, collateralReceived);
+        emit Close(debtToken, msg.sender, to, collateralReceived);
     }
 
     function updateOracle(bytes32 assetId, bytes calldata data) external payable returns (uint256) {

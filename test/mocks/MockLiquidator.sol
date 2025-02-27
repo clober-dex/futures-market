@@ -15,15 +15,15 @@ contract MockLiquidator is ILiquidator {
         manager = manager_;
     }
 
-    function liquidate(bytes32 id, address user, uint128 debtCovered, bytes calldata data)
+    function liquidate(address debtToken, address user, uint128 debtCovered, bytes calldata data)
         external
         returns (uint128, uint128)
     {
-        return manager.liquidate(id, user, debtCovered, false, data);
+        return manager.liquidate(debtToken, user, debtCovered, false, data);
     }
 
     function onLiquidation(
-        bytes32 id,
+        address debtToken,
         address caller,
         address user,
         uint128 debtCovered,
@@ -32,7 +32,7 @@ contract MockLiquidator is ILiquidator {
         bytes calldata data
     ) external {
         require(msg.sender == address(manager), "MockLiquidator: unauthorized");
-        flag = keccak256(abi.encode(id, caller, user, debtCovered, collateralLiquidated, relativePrice, data));
-        IERC20(manager.getDebtToken(id)).approve(address(manager), debtCovered);
+        flag = keccak256(abi.encode(debtToken, caller, user, debtCovered, collateralLiquidated, relativePrice, data));
+        IERC20(debtToken).approve(address(manager), debtCovered);
     }
 }
