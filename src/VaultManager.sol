@@ -277,4 +277,8 @@ contract VaultManager is
         IERC20(token).safeTransferFrom(address(receiver), address(this), amount);
         return true;
     }
+
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(IERC3156FlashLender).interfaceId || super.supportsInterface(interfaceId);
+    }
 }
