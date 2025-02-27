@@ -69,18 +69,20 @@ interface IVaultManager {
     /// @param minter Address that initiated the mint
     /// @param to Address that received the minted tokens
     /// @param amount Amount of debt tokens minted
-    event Mint(bytes32 indexed id, address indexed minter, address indexed to, uint128 amount);
+    /// @param relativePrice Price ratio between collateral and debt where collateralAmount = debtAmount * relativePrice
+    event Mint(bytes32 indexed id, address indexed minter, address indexed to, uint128 amount, uint256 relativePrice);
 
     /// @notice Emitted when debt tokens are burned
     /// @param id Unique identifier of the vault
     /// @param burner Address that initiated the burn
     /// @param to Address that received credit for the burn
     /// @param amount Amount of debt tokens burned
-    event Burn(bytes32 indexed id, address indexed burner, address indexed to, uint128 amount);
+    /// @param relativePrice Price ratio between collateral and debt where collateralAmount = debtAmount * relativePrice
+    event Burn(bytes32 indexed id, address indexed burner, address indexed to, uint128 amount, uint256 relativePrice);
 
     /// @notice Emitted when a vault is settled at expiration
     /// @param id Unique identifier of the vault
-    /// @param settlePrice The final settlement price used for the vault
+    /// @param settlePrice The final settlement relative price used for the vault
     event Settle(bytes32 indexed id, uint256 settlePrice);
 
     /// @notice Emitted when a position is liquidated
@@ -89,12 +91,14 @@ interface IVaultManager {
     /// @param user Address of the position owner that was liquidated
     /// @param debtCovered Amount of debt that was covered by the liquidation
     /// @param collateralLiquidated Amount of collateral that was liquidated
+    /// @param relativePrice Price ratio between collateral and debt where collateralAmount = debtAmount * relativePrice
     event Liquidate(
         bytes32 indexed id,
         address indexed liquidator,
         address indexed user,
         uint128 debtCovered,
-        uint128 collateralLiquidated
+        uint128 collateralLiquidated,
+        uint256 relativePrice
     );
 
     /// @notice Emitted when debt tokens are redeemed for collateral after settlement

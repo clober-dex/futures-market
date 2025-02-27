@@ -12,6 +12,7 @@ interface ILiquidator {
     /// @param user Address of the position owner that was liquidated
     /// @param debtCovered Amount of debt that was covered by the liquidation
     /// @param collateralLiquidated Amount of collateral that was seized during liquidation
+    /// @param relativePrice Price ratio between collateral and debt where collateralAmount = debtAmount * relativePrice
     /// @param data Additional data for the liquidation
     function onLiquidation(
         bytes32 id,
@@ -19,6 +20,7 @@ interface ILiquidator {
         address user,
         uint128 debtCovered,
         uint128 collateralLiquidated,
+        uint256 relativePrice,
         bytes calldata data
     ) external;
 }
