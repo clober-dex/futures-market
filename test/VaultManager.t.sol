@@ -235,7 +235,7 @@ contract VaultManagerTest is Test {
 
         // Expect burn event
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Burn(debtToken, RECEIVER, address(this), 80 * 1e18, 150 * 1e18);
+        emit IVaultManager.Burn(debtToken, RECEIVER, address(this), 80 * 1e18);
 
         vm.prank(RECEIVER);
         vaultManager.burn(debtToken, address(this), 80 * 1e18);
@@ -606,7 +606,7 @@ contract VaultManagerTest is Test {
         calls[1] = withdrawData;
 
         vm.expectEmit(address(vaultManager));
-        emit IVaultManager.Burn(debtToken, address(this), address(this), 80 * 1e18, 150 * 1e18);
+        emit IVaultManager.Burn(debtToken, address(this), address(this), 80 * 1e18);
         vm.expectEmit(address(vaultManager));
         emit IVaultManager.Withdraw(debtToken, address(this), address(this), 30_000 * 1e6);
         vaultManager.multicall(calls);

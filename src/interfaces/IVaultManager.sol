@@ -92,10 +92,7 @@ interface IVaultManager {
     /// @param burner Address that initiated the burn
     /// @param to Address that received credit for the burn
     /// @param amount Amount of debt tokens burned
-    /// @param relativePrice Price ratio between collateral and debt where collateralAmount = debtAmount * relativePrice
-    event Burn(
-        address indexed debtToken, address indexed burner, address indexed to, uint128 amount, uint256 relativePrice
-    );
+    event Burn(address indexed debtToken, address indexed burner, address indexed to, uint128 amount);
 
     /// @notice Emitted when a vault is settled at expiration
     /// @param debtToken Address of the debt token

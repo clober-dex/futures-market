@@ -182,7 +182,7 @@ contract VaultManager is
         unchecked {
             _positions[debtToken][to].debt = position.debt - amount;
         }
-        emit Burn(debtToken, msg.sender, to, amount, _getRelativePrice(debtToken));
+        emit Burn(debtToken, msg.sender, to, amount);
     }
 
     function settle(address debtToken) external payable nonReentrant returns (uint256 settlePrice) {
