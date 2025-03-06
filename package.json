@@ -1,5 +1,5 @@
 {
-  "name": "future-market",
+  "name": "futures-market",
   "version": "1.0.0",
   "description": "**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**",
   "main": "index.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@JhChoy:clober-dex/future-market.git"
+    "url": "git@JhChoy:clober-dex/futures-market.git"
   },
   "author": "",
   "license": "ISC",
