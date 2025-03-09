@@ -10,7 +10,6 @@ library LibOwnable {
         address pendingOwner;
     }
 
-    // keccak256("app.storage.Ownable") - 1
     // bytes32(uint256(keccak256('app.storage.Ownable')) - 1)
     bytes32 constant OWNABLE_STORAGE_POSITION = 0x781af69b8a39034671c420950921efe813f55295c4d49895e31f5d65ee1b0a75;
 
