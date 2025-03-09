@@ -11,6 +11,11 @@ interface IOwnable {
     /// @param newOwner Address of the new owner
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    /// @notice Emitted when ownership transfer is initiated
+    /// @param previousOwner Address of the previous owner
+    /// @param newOwner Address of the new owner
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+
     /// @notice Returns the address of the current owner
     /// @return owner_ Address of the current owner
     function owner() external view returns (address owner_);
