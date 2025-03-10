@@ -8,8 +8,8 @@ library Ownership {
         address pendingOwner;
     }
 
-    // bytes32(uint256(keccak256('app.storage.Ownable')) - 1)
-    bytes32 internal constant POSITION = 0x781af69b8a39034671c420950921efe813f55295c4d49895e31f5d65ee1b0a75;
+    // bytes32(uint256(keccak256('app.storage.Ownership')) - 1)
+    bytes32 internal constant POSITION = 0x4e4ebbee0be3d30f69e31aa5e260d7a7f722e0c4bfe0fa8e2107c8a7763f5367;
 
     function load() internal pure returns (Storage storage $) {
         assembly {

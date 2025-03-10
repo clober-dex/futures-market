@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-/// @title Ownable Interface for Access Control
+/// @title Ownership Interface for Access Control
 /// @notice Interface for managing ownership of contracts with a two-step ownership transfer pattern
 /// @dev Handles ownership management including transfers, renouncement and pending owner acceptance
-interface IOwnable {
+interface IOwnership {
     /// @notice Emitted when ownership is transferred from one address to another
     /// @param previousOwner Address of the previous owner
     /// @param newOwner Address of the new owner
