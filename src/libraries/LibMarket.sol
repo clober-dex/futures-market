@@ -12,7 +12,7 @@ library LibMarket {
     error NotSettled();
 
     uint256 internal constant DEBT_PRECISION = 1e18;
-    uint256 internal constant PRECISION = 1e6;
+    uint256 internal constant RATE_PRECISION = 1e6;
 
     function isSettled(Market.Storage storage market) internal view returns (bool) {
         return market.settlePrice != 0;
@@ -26,7 +26,7 @@ library LibMarket {
         uint256 collateralPrecision = 10 ** IERC20Metadata(market.collateral).decimals();
         Market.Position memory position = market.positions[user];
         return uint256(position.collateral) * ratio * LibOracle.PRECISION * DEBT_PRECISION
-            > uint256(position.debt) * relativePrice * PRECISION * collateralPrecision;
+            > uint256(position.debt) * relativePrice * RATE_PRECISION * collateralPrecision;
     }
 
     function isUnderLtv(Market.Storage storage market, address user, uint256 relativePrice)
