@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuardTransientUpgradeable} from
     "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardTransientUpgradeable.sol";
 
+import {InsufficientCollateral, LTVExceeded, BurnExceedsDebt, PositionSafe} from "../Errors.sol";
 import {IMarketPosition} from "../interfaces/IMarketPosition.sol";
 import {ILiquidator} from "../interfaces/ILiquidator.sol";
 import {IOracle} from "../interfaces/IOracle.sol";
@@ -16,11 +17,6 @@ import {Market} from "../storages/Market.sol";
 import {Debt} from "../Debt.sol";
 
 contract MarketPositionFacet is IMarketPosition, ReentrancyGuardTransientUpgradeable {
-    error InsufficientCollateral();
-    error LTVExceeded();
-    error BurnExceedsDebt();
-    error PositionSafe();
-
     using SafeERC20 for IERC20;
     using LibMarket for Market.Storage;
     using LibOracle for IOracle;

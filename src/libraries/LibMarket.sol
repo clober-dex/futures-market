@@ -3,14 +3,12 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import {MarketDoesNotExist, AlreadySettled, NotSettled} from "../Errors.sol";
 import {Market} from "../storages/Market.sol";
 import {LibOracle} from "./LibOracle.sol";
 
 library LibMarket {
-    error MarketDoesNotExist();
-    error AlreadySettled();
-    error NotSettled();
-
     uint256 internal constant DEBT_PRECISION = 1e18;
     uint256 internal constant RATE_PRECISION = 1e6;
 

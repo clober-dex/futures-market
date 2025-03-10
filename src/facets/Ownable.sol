@@ -2,11 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import {OwnableUnauthorizedAccount} from "../Errors.sol";
 import {Ownership} from "../storages/Ownership.sol";
 
 abstract contract Ownable {
-    error OwnableUnauthorizedAccount(address account);
-
     modifier onlyOwner() {
         _checkOwner();
         _;

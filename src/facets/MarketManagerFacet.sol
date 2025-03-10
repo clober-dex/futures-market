@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
+import {InvalidConfig, NotExpired} from "../Errors.sol";
 import {IMarketManager} from "../interfaces/IMarketManager.sol";
 import {IOracle} from "../interfaces/IOracle.sol";
 import {Ownable} from "./Ownable.sol";
@@ -15,9 +16,6 @@ import {LibOracle} from "../libraries/LibOracle.sol";
 contract MarketManagerFacet is IMarketManager, Ownable {
     using LibOracle for IOracle;
     using LibMarket for Market.Storage;
-
-    error InvalidConfig();
-    error NotExpired();
 
     IOracle internal immutable _priceOracle;
     address internal immutable _debtTokenImplementation;
