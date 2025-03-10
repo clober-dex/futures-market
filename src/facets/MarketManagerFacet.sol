@@ -68,4 +68,44 @@ contract MarketManagerFacet is IMarketManager, Ownable {
     function updateOracle(bytes calldata data) external payable {
         _priceOracle.updatePrice{value: msg.value}(data);
     }
+
+    function changeExpiration(address debtToken, uint40 expiration) external onlyOwner {
+        if (expiration < block.timestamp) revert InvalidConfig();
+
+        Market.Storage storage market = Market.load(debtToken);
+        market.checkUnsettled();
+        market.expiration = expiration;
+
+        emit ChangeExpiration(debtToken, expiration);
+    }
+
+    function changeLtv(address debtToken, uint24 ltv) external onlyOwner {
+        if (ltv > LibMarket.RATE_PRECISION) revert InvalidConfig();
+
+        Market.Storage storage market = Market.load(debtToken);
+        market.checkUnsettled();
+        if (ltv > market.liquidationThreshold) revert InvalidConfig();
+        market.ltv = ltv;
+
+        emit ChangeLtv(debtToken, ltv);
+    }
+
+    function changeLiquidationThreshold(address debtToken, uint24 liquidationThreshold) external onlyOwner {
+        if (liquidationThreshold > LibMarket.RATE_PRECISION) revert InvalidConfig();
+
+        Market.Storage storage market = Market.load(debtToken);
+        market.checkUnsettled();
+        if (market.ltv > liquidationThreshold) revert InvalidConfig();
+        market.liquidationThreshold = liquidationThreshold;
+
+        emit ChangeLiquidationThreshold(debtToken, liquidationThreshold);
+    }
+
+    function changeMinDebt(address debtToken, uint128 minDebt) external onlyOwner {
+        Market.Storage storage market = Market.load(debtToken);
+        market.checkUnsettled();
+        market.minDebt = minDebt;
+
+        emit ChangeMinDebt(debtToken, minDebt);
+    }
 }

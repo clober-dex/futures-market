@@ -37,10 +37,14 @@ library FacetDeployer {
         returns (IDiamond.FacetCut memory)
     {
         address marketManagerFacet = address(new MarketManagerFacet(oracle, debtTokenImpl));
-        bytes4[] memory functionSelectors = new bytes4[](3);
+        bytes4[] memory functionSelectors = new bytes4[](7);
         functionSelectors[0] = IMarketManager.open.selector;
         functionSelectors[1] = IMarketManager.settle.selector;
         functionSelectors[2] = IMarketManager.updateOracle.selector;
+        functionSelectors[3] = IMarketManager.changeExpiration.selector;
+        functionSelectors[4] = IMarketManager.changeLtv.selector;
+        functionSelectors[5] = IMarketManager.changeLiquidationThreshold.selector;
+        functionSelectors[6] = IMarketManager.changeMinDebt.selector;
 
         return IDiamond.FacetCut({
             facetAddress: marketManagerFacet,

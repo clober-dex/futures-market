@@ -18,6 +18,7 @@ import {IOracle} from "../src/interfaces/IOracle.sol";
 import {IMarketPosition} from "../src/interfaces/IMarketPosition.sol";
 import {IMarketManager} from "../src/interfaces/IMarketManager.sol";
 import {IMarketView} from "../src/interfaces/IMarketView.sol";
+import {LibMarket} from "../src/libraries/LibMarket.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockOracle} from "./mocks/MockOracle.sol";
 import {MockLiquidator} from "./mocks/MockLiquidator.sol";
@@ -705,5 +706,151 @@ contract FuturesMarketTest is Test {
         assertTrue(futuresMarket.supportsInterface(type(IDiamondLoupe).interfaceId));
         assertTrue(futuresMarket.supportsInterface(type(IERC3156FlashLender).interfaceId));
         assertTrue(futuresMarket.supportsInterface(0x7f5828d0)); // EIP173
+    }
+
+    function test_changeExpiration() public {
+        address debtToken = _open(_defaultConfig());
+        uint40 newExpiration = uint40(block.timestamp + 2 days);
+
+        vm.expectEmit(address(futuresMarket));
+        emit IMarketManager.ChangeExpiration(debtToken, newExpiration);
+
+        futuresMarket.changeExpiration(debtToken, newExpiration);
+
+        IFuturesMarket.Market memory market = futuresMarket.getMarket(debtToken);
+        assertEq(market.expiration, newExpiration, "expiration mismatch");
+    }
+
+    function test_changeExpiration_invalidConfig() public {
+        address debtToken = _open(_defaultConfig());
+        uint40 invalidExpiration = uint40(block.timestamp - 1);
+
+        vm.expectRevert(abi.encodeWithSelector(InvalidConfig.selector));
+        futuresMarket.changeExpiration(debtToken, invalidExpiration);
+    }
+
+    function test_changeLtv() public {
+        address debtToken = _open(_defaultConfig());
+        uint24 newLtv = 400000; // 40%
+
+        vm.expectEmit(address(futuresMarket));
+        emit IMarketManager.ChangeLtv(debtToken, newLtv);
+
+        futuresMarket.changeLtv(debtToken, newLtv);
+
+        IFuturesMarket.Market memory market = futuresMarket.getMarket(debtToken);
+        assertEq(market.ltv, newLtv, "ltv mismatch");
+    }
+
+    function test_changeLtv_invalidConfig() public {
+        address debtToken = _open(_defaultConfig());
+
+        // Test LTV > RATE_PRECISION
+        uint24 invalidLtv = uint24(LibMarket.RATE_PRECISION) + 1;
+        vm.expectRevert(abi.encodeWithSelector(InvalidConfig.selector));
+        futuresMarket.changeLtv(debtToken, invalidLtv);
+
+        // Test LTV > liquidationThreshold
+        IFuturesMarket.Market memory market = futuresMarket.getMarket(debtToken);
+        vm.expectRevert(abi.encodeWithSelector(InvalidConfig.selector));
+        futuresMarket.changeLtv(debtToken, market.liquidationThreshold + 1);
+    }
+
+    function test_changeLiquidationThreshold() public {
+        address debtToken = _open(_defaultConfig());
+        uint24 newThreshold = 800000; // 80%
+
+        vm.expectEmit(address(futuresMarket));
+        emit IMarketManager.ChangeLiquidationThreshold(debtToken, newThreshold);
+
+        futuresMarket.changeLiquidationThreshold(debtToken, newThreshold);
+
+        IFuturesMarket.Market memory market = futuresMarket.getMarket(debtToken);
+        assertEq(market.liquidationThreshold, newThreshold, "liquidationThreshold mismatch");
+    }
+
+    function test_changeLiquidationThreshold_invalidConfig() public {
+        address debtToken = _open(_defaultConfig());
+
+        // Test threshold > RATE_PRECISION
+        uint24 invalidThreshold = uint24(LibMarket.RATE_PRECISION) + 1;
+        vm.expectRevert(abi.encodeWithSelector(InvalidConfig.selector));
+        futuresMarket.changeLiquidationThreshold(debtToken, invalidThreshold);
+
+        // Test threshold < LTV
+        IFuturesMarket.Market memory market = futuresMarket.getMarket(debtToken);
+        vm.expectRevert(abi.encodeWithSelector(InvalidConfig.selector));
+        futuresMarket.changeLiquidationThreshold(debtToken, market.ltv - 1);
+    }
+
+    function test_changeMinDebt() public {
+        address debtToken = _open(_defaultConfig());
+        uint128 newMinDebt = 0.02 ether;
+
+        vm.expectEmit(address(futuresMarket));
+        emit IMarketManager.ChangeMinDebt(debtToken, newMinDebt);
+
+        futuresMarket.changeMinDebt(debtToken, newMinDebt);
+
+        IFuturesMarket.Market memory market = futuresMarket.getMarket(debtToken);
+        assertEq(market.minDebt, newMinDebt, "minDebt mismatch");
+    }
+
+    function test_marketConfigChanges_afterSettlement() public {
+        address debtToken = _open(_defaultConfig());
+
+        // Settle the market
+        vm.warp(FUTURE_EXPIRATION + 1);
+        futuresMarket.settle(debtToken);
+
+        // Try to change configurations after settlement
+        vm.expectRevert(abi.encodeWithSelector(AlreadySettled.selector));
+        futuresMarket.changeExpiration(debtToken, uint40(block.timestamp + 1 days));
+
+        vm.expectRevert(abi.encodeWithSelector(AlreadySettled.selector));
+        futuresMarket.changeLtv(debtToken, 400000);
+
+        vm.expectRevert(abi.encodeWithSelector(AlreadySettled.selector));
+        futuresMarket.changeLiquidationThreshold(debtToken, 800000);
+
+        vm.expectRevert(abi.encodeWithSelector(AlreadySettled.selector));
+        futuresMarket.changeMinDebt(debtToken, 0.02 ether);
+    }
+
+    function test_marketConfigChanges_onlyOwner() public {
+        address debtToken = _open(_defaultConfig());
+        address nonOwner = address(0xBEEF);
+
+        vm.startPrank(nonOwner);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+        futuresMarket.changeExpiration(debtToken, uint40(block.timestamp + 1 days));
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+        futuresMarket.changeLtv(debtToken, 400000);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+        futuresMarket.changeLiquidationThreshold(debtToken, 800000);
+
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, nonOwner));
+        futuresMarket.changeMinDebt(debtToken, 0.02 ether);
+
+        vm.stopPrank();
+    }
+
+    function test_marketConfigChanges_nonExistentMarket() public {
+        address nonExistentMarket = address(0x1234567890123456789012345678901234567890);
+
+        vm.expectRevert(abi.encodeWithSelector(MarketDoesNotExist.selector));
+        futuresMarket.changeExpiration(nonExistentMarket, uint40(block.timestamp + 1 days));
+
+        vm.expectRevert(abi.encodeWithSelector(MarketDoesNotExist.selector));
+        futuresMarket.changeLtv(nonExistentMarket, 400000);
+
+        vm.expectRevert(abi.encodeWithSelector(MarketDoesNotExist.selector));
+        futuresMarket.changeLiquidationThreshold(nonExistentMarket, 800000);
+
+        vm.expectRevert(abi.encodeWithSelector(MarketDoesNotExist.selector));
+        futuresMarket.changeMinDebt(nonExistentMarket, 0.02 ether);
     }
 }

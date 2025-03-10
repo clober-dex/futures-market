@@ -23,6 +23,26 @@ interface IMarketManager {
         uint128 minDebt
     );
 
+    /// @notice Emitted when market expiration time is updated
+    /// @param debtToken Address of the debt token
+    /// @param expiration New expiration timestamp
+    event ChangeExpiration(address indexed debtToken, uint40 expiration);
+
+    /// @notice Emitted when market LTV ratio is updated
+    /// @param debtToken Address of the debt token
+    /// @param ltv New Loan-to-Value ratio as a percentage with 1e6 precision
+    event ChangeLtv(address indexed debtToken, uint24 ltv);
+
+    /// @notice Emitted when market liquidation threshold is updated
+    /// @param debtToken Address of the debt token
+    /// @param liquidationThreshold New liquidation threshold as a percentage with 1e6 precision
+    event ChangeLiquidationThreshold(address indexed debtToken, uint24 liquidationThreshold);
+
+    /// @notice Emitted when market minimum debt amount is updated
+    /// @param debtToken Address of the debt token
+    /// @param minDebt New minimum debt amount that must be minted
+    event ChangeMinDebt(address indexed debtToken, uint128 minDebt);
+
     /// @notice Emitted when a market is settled at expiration
     /// @param debtToken Address of the debt token
     /// @param settlePrice The final settlement price used for the market
@@ -48,6 +68,26 @@ interface IMarketManager {
         string calldata name,
         string calldata symbol
     ) external payable returns (address debtToken);
+
+    /// @notice Updates the market expiration time
+    /// @param debtToken Address of the debt token
+    /// @param expiration New expiration timestamp
+    function changeExpiration(address debtToken, uint40 expiration) external;
+
+    /// @notice Updates the market LTV ratio
+    /// @param debtToken Address of the debt token
+    /// @param ltv New Loan-to-Value ratio as a percentage with 1e6 precision
+    function changeLtv(address debtToken, uint24 ltv) external;
+
+    /// @notice Updates the market liquidation threshold
+    /// @param debtToken Address of the debt token
+    /// @param liquidationThreshold New liquidation threshold as a percentage with 1e6 precision
+    function changeLiquidationThreshold(address debtToken, uint24 liquidationThreshold) external;
+
+    /// @notice Updates the market minimum debt amount
+    /// @param debtToken Address of the debt token
+    /// @param minDebt New minimum debt amount that must be minted
+    function changeMinDebt(address debtToken, uint128 minDebt) external;
 
     /// @notice Settles a market after expiration
     /// @param debtToken Address of the debt token
