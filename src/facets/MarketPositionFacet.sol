@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 pragma solidity ^0.8.0;
 
@@ -26,11 +26,9 @@ contract MarketPositionFacet is IMarketPosition, ReentrancyGuardTransientUpgrade
     using LibOracle for IOracle;
 
     IOracle internal immutable _priceOracle;
-    address internal immutable _debtTokenImplementation;
 
-    constructor(address priceOracle_, address debtTokenImplementation_) {
+    constructor(address priceOracle_) {
         _priceOracle = IOracle(priceOracle_);
-        _debtTokenImplementation = debtTokenImplementation_;
     }
 
     function deposit(address debtToken, address to, uint128 amount) external payable nonReentrant {
