@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {IVaultManager} from "../../src/interfaces/IVaultManager.sol";
+import {IFuturesMarket} from "../../src/interfaces/IFuturesMarket.sol";
 import {ILiquidator} from "../../src/interfaces/ILiquidator.sol";
 
 contract MockLiquidator is ILiquidator {
-    IVaultManager public immutable manager;
+    IFuturesMarket public immutable manager;
 
     bytes32 public flag;
 
-    constructor(IVaultManager manager_) {
+    constructor(IFuturesMarket manager_) {
         manager = manager_;
     }
 
