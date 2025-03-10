@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import {Ownership} from "../storages/Ownership.sol";
 
-abstract contract Modifiers {
+abstract contract Ownable {
     error OwnableUnauthorizedAccount(address account);
 
     modifier onlyOwner() {

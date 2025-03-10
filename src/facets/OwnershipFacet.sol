@@ -3,10 +3,10 @@
 pragma solidity ^0.8.0;
 
 import {IOwnership} from "../interfaces/IOwnership.sol";
-import {Modifiers} from "./Modifiers.sol";
+import {Ownable} from "./Ownable.sol";
 import {Ownership} from "../storages/Ownership.sol";
 
-contract OwnershipFacet is IOwnership, Modifiers {
+contract OwnershipFacet is IOwnership, Ownable {
     function owner() external view returns (address owner_) {
         owner_ = Ownership.load().owner;
     }
