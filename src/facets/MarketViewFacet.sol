@@ -6,7 +6,7 @@ import {IMarketView} from "../interfaces/IMarketView.sol";
 import {Market as MarketStorage} from "../storages/Market.sol";
 import {LibMarket} from "../libraries/LibMarket.sol";
 
-contract MarketViewerFacet is IMarketView {
+contract MarketViewFacet is IMarketView {
     using LibMarket for MarketStorage.Storage;
 
     function getMarket(address debtToken) external view returns (Market memory) {
