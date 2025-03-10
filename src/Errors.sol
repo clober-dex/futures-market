@@ -12,3 +12,4 @@ error PositionSafe();
 error MarketDoesNotExist();
 error AlreadySettled();
 error NotSettled();
+error InvalidFlashLoanCallback();
