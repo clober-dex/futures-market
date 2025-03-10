@@ -2,25 +2,24 @@
 
 pragma solidity ^0.8.0;
 
-import {LibOwnable} from "../libraries/LibOwnable.sol";
 import {IOwnable} from "../interfaces/IOwnable.sol";
 import {Modifiers} from "./Modifiers.sol";
+import {Ownership} from "../storages/Ownership.sol";
 
 contract OwnershipFacet is IOwnable, Modifiers {
-    error OwnableUnauthorizedAccount(address account);
-
     function owner() external view returns (address owner_) {
-        owner_ = LibOwnable.owner();
+        owner_ = Ownership.load().owner;
     }
 
     function pendingOwner() external view returns (address pendingOwner_) {
-        pendingOwner_ = LibOwnable.pendingOwner();
+        pendingOwner_ = Ownership.load().pendingOwner;
     }
 
     function _transferOwnership(address newOwner) internal {
-        address oldOwner = LibOwnable.owner();
-        LibOwnable.setPendingOwner(address(0));
-        LibOwnable.setOwner(newOwner);
+        Ownership.Storage storage $ = Ownership.load();
+        address oldOwner = $.owner;
+        $.pendingOwner = address(0);
+        $.owner = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 
@@ -29,15 +28,12 @@ contract OwnershipFacet is IOwnable, Modifiers {
     }
 
     function transferOwnership(address newOwner) external onlyOwner {
-        LibOwnable.setPendingOwner(newOwner);
-        emit OwnershipTransferStarted(LibOwnable.owner(), newOwner);
+        Ownership.Storage storage $ = Ownership.load();
+        $.pendingOwner = newOwner;
+        emit OwnershipTransferStarted($.owner, newOwner);
     }
 
-    function acceptOwnership() external {
-        address sender = msg.sender;
-        if (LibOwnable.pendingOwner() != sender) {
-            revert OwnableUnauthorizedAccount(sender);
-        }
-        _transferOwnership(sender);
+    function acceptOwnership() external onlyPendingOwner {
+        _transferOwnership(msg.sender);
     }
 }
