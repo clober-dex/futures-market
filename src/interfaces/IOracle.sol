@@ -2,6 +2,9 @@
 
 pragma solidity ^0.8.0;
 
+/// @title Oracle Interface for Asset Price Data
+/// @notice Interface for retrieving and updating asset price data
+/// @dev Handles price data for both address-based and ID-based asset identification
 interface IOracle {
     /// @notice Emitted when the asset identifier is set.
     /// @param asset The address of the asset.

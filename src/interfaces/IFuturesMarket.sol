@@ -12,6 +12,9 @@ import {IMarketView} from "./IMarketView.sol";
 import {IOwnership} from "./IOwnership.sol";
 import {IUtils} from "./IUtils.sol";
 
+/// @title Futures Market Interface
+/// @notice Aggregates all interfaces required for the futures market functionality
+/// @dev Implements diamond pattern interfaces along with market-specific functionality
 interface IFuturesMarket is
     IDiamondCut,
     IDiamondLoupe,
