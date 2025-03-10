@@ -8,10 +8,11 @@ pragma solidity ^0.8.0;
  * Modified by: Jay Choy
  * /*****************************************************************************
  */
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+
 import {IDiamond} from "../interfaces/IDiamond.sol";
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
 import {IDiamondLoupe} from "../interfaces/IDiamondLoupe.sol";
-import {IERC165} from "../interfaces/IERC165.sol";
 
 library LibDiamond {
     bytes32 internal constant DIAMOND_STORAGE_POSITION = keccak256("diamond.standard.diamond.storage");

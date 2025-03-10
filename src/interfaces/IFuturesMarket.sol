@@ -2,9 +2,10 @@
 
 pragma solidity ^0.8.0;
 
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+
 import {IDiamondCut} from "./IDiamondCut.sol";
 import {IDiamondLoupe} from "./IDiamondLoupe.sol";
-import {IERC165} from "./IERC165.sol";
 import {IMarketManager} from "./IMarketManager.sol";
 import {IMarketPosition} from "./IMarketPosition.sol";
 import {IMarketView} from "./IMarketView.sol";
