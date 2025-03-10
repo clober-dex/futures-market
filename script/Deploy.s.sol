@@ -3,9 +3,13 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 import {PythOracle} from "../src/PythOracle.sol";
-import {VaultManager} from "../src/VaultManager.sol";
 import {Debt} from "../src/Debt.sol";
+import {FuturesMarket} from "../src/FuturesMarket.sol";
+import {IDiamond} from "../src/interfaces/IDiamond.sol";
+import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
+import {FacetDeployer} from "../src/helpers/FacetDeployer.sol";
 
 contract DeployScript is Script {
     function setUp() public {}
@@ -26,21 +30,21 @@ contract DeployScript is Script {
         );
         console.log("Oracle deployed at", address(oracle));
 
-        address vaultManagerImpl = address(new VaultManager(address(oracle)));
-        address vaultManagerProxy = address(new ERC1967Proxy(vaultManagerImpl, ""));
-        address debtTokenImpl = address(new Debt(vaultManagerProxy));
-        VaultManager vaultManager = VaultManager(vaultManagerProxy);
-        vaultManager.initialize(owner, debtTokenImpl);
-        console.log("VaultManager deployed at", address(vaultManager));
+        address diamond = address(new FuturesMarket(owner));
+        address debtTokenImpl = address(new Debt(diamond));
+        console.log("Diamond deployed at", address(diamond));
+        console.log("DebtTokenImpl deployed at", address(debtTokenImpl));
 
-        vm.stopBroadcast();
-    }
+        IDiamond.FacetCut[] memory cut = new IDiamond.FacetCut[](6);
+        cut[0] = FacetDeployer.deployFlashLoanFacet();
+        cut[1] = FacetDeployer.deployMarketManagerFacet(address(oracle), debtTokenImpl);
+        cut[2] = FacetDeployer.deployMarketPositionFacet(address(oracle));
+        cut[3] = FacetDeployer.deployMarketViewFacet();
+        cut[4] = FacetDeployer.deployOwnershipFacet();
+        cut[5] = FacetDeployer.deployUtilsFacet();
 
-    function upgradeVaultManager() public {
-        address oracle = 0x0Ac256AE2a360CB85e57ac1860608ae3372aA0BF;
-        vm.startBroadcast();
-        address newTemplate = address(new VaultManager(address(oracle)));
-        VaultManager(0xAa7a07414d23F1153ED13C702CB84c5DD1319a62).upgradeToAndCall(newTemplate, "");
+        IDiamondCut(diamond).diamondCut(cut, address(0), "");
+
         vm.stopBroadcast();
     }
 }
