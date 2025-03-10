@@ -10,6 +10,7 @@ import {FuturesMarket} from "../src/FuturesMarket.sol";
 import {IDiamond} from "../src/interfaces/IDiamond.sol";
 import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
 import {FacetDeployer} from "../src/helpers/FacetDeployer.sol";
+import {Init} from "../src/helpers/Init.sol";
 
 contract DeployScript is Script {
     function setUp() public {}
@@ -43,7 +44,9 @@ contract DeployScript is Script {
         cut[4] = FacetDeployer.deployOwnershipFacet();
         cut[5] = FacetDeployer.deployUtilsFacet();
 
-        IDiamondCut(diamond).diamondCut(cut, address(0), "");
+        address init = address(new Init());
+
+        IDiamondCut(diamond).diamondCut(cut, init, abi.encodeWithSelector(Init.init.selector));
 
         vm.stopBroadcast();
     }

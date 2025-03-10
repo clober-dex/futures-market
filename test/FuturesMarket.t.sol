@@ -7,8 +7,12 @@ import "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
+import "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
 
 import "../src/Errors.sol";
+import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
+import {IDiamondLoupe} from "../src/interfaces/IDiamondLoupe.sol";
 import {IFuturesMarket} from "../src/interfaces/IFuturesMarket.sol";
 import {IOracle} from "../src/interfaces/IOracle.sol";
 import {IMarketPosition} from "../src/interfaces/IMarketPosition.sol";
@@ -693,5 +697,13 @@ contract FuturesMarketTest is Test {
         assertEq(collateral.balanceOf(address(this)), 60_000 * 1e6, "collateral balance mismatch");
         assertEq(collateral.balanceOf(RECEIVER), 40_000 * 1e6, "collateral balance mismatch");
         assertEq(IERC20(debtToken).balanceOf(address(this)), 0, "debt balance mismatch");
+    }
+
+    function test_supportsInterface() public view {
+        assertTrue(futuresMarket.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(futuresMarket.supportsInterface(type(IDiamondCut).interfaceId));
+        assertTrue(futuresMarket.supportsInterface(type(IDiamondLoupe).interfaceId));
+        assertTrue(futuresMarket.supportsInterface(type(IERC3156FlashLender).interfaceId));
+        assertTrue(futuresMarket.supportsInterface(0x7f5828d0)); // EIP173
     }
 }

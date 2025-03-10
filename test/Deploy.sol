@@ -9,6 +9,7 @@ import {IFuturesMarket} from "../src/interfaces/IFuturesMarket.sol";
 import {FuturesMarket} from "../src/FuturesMarket.sol";
 import {Debt} from "../src/Debt.sol";
 import {FacetDeployer} from "../src/helpers/FacetDeployer.sol";
+import {Init} from "../src/helpers/Init.sol";
 
 library Deploy {
     function deployFuturesMarket(Vm vm, address oracle, address owner) internal returns (IFuturesMarket) {
@@ -23,8 +24,10 @@ library Deploy {
         cut[4] = FacetDeployer.deployOwnershipFacet();
         cut[5] = FacetDeployer.deployUtilsFacet();
 
+        address init = address(new Init());
+
         vm.prank(owner);
-        IDiamondCut(diamond).diamondCut(cut, address(0), "");
+        IDiamondCut(diamond).diamondCut(cut, init, abi.encodeWithSelector(Init.init.selector));
 
         return IFuturesMarket(diamond);
     }
