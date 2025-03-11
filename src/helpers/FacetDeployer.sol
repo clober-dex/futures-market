@@ -33,7 +33,9 @@ library FacetDeployer {
         require(computedAddress == deployed, "Address does not match");
     }
 
-    function create2(Deployer deployer, bytes32 salt, bytes memory initCode) internal returns (address deployed) {
+    function create2(Deployer deployer, bytes memory initCode) internal returns (address deployed) {
+        bytes32 salt = bytes32(abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(0)));
+
         bytes32 guardedSalt = keccak256(abi.encodePacked(uint256(uint160(Deployer.unwrap(deployer))), salt));
         address computedAddress = ICreateX(CREATEX_ADDRESS).computeCreate2Address(guardedSalt, keccak256(initCode));
         if (computedAddress.codehash != bytes32(0)) {
@@ -45,11 +47,7 @@ library FacetDeployer {
     }
 
     function deployFlashLoanFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
-        bytes32 salt = bytes32(
-            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("FlashLoanFacet", 0))))
-        );
-
-        address flashLoanFacet = create2(deployer, salt, type(FlashLoanFacet).creationCode);
+        address flashLoanFacet = create2(deployer, type(FlashLoanFacet).creationCode);
 
         bytes4[] memory functionSelectors = new bytes4[](3);
         functionSelectors[0] = IERC3156FlashLender.maxFlashLoan.selector;
@@ -67,16 +65,10 @@ library FacetDeployer {
         internal
         returns (IDiamond.FacetCut memory)
     {
-        bytes32 salt = bytes32(
-            abi.encodePacked(
-                Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("MarketManagerFacet", 0)))
-            )
-        );
-
         bytes memory initCode =
             abi.encodePacked(type(MarketManagerFacet).creationCode, abi.encode(oracle, debtTokenImpl));
 
-        address marketManagerFacet = create2(deployer, salt, initCode);
+        address marketManagerFacet = create2(deployer, initCode);
 
         bytes4[] memory functionSelectors = new bytes4[](7);
         functionSelectors[0] = IMarketManager.open.selector;
@@ -95,15 +87,9 @@ library FacetDeployer {
     }
 
     function deployMarketPositionFacet(Deployer deployer, address oracle) internal returns (IDiamond.FacetCut memory) {
-        bytes32 salt = bytes32(
-            abi.encodePacked(
-                Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("MarketPositionFacet", 0)))
-            )
-        );
-
         bytes memory initCode = abi.encodePacked(type(MarketPositionFacet).creationCode, abi.encode(oracle));
 
-        address marketPositionFacet = create2(deployer, salt, initCode);
+        address marketPositionFacet = create2(deployer, initCode);
 
         bytes4[] memory functionSelectors = new bytes4[](7);
         functionSelectors[0] = IMarketPosition.deposit.selector;
@@ -122,11 +108,7 @@ library FacetDeployer {
     }
 
     function deployMarketViewFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
-        bytes32 salt = bytes32(
-            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("MarketViewFacet", 0))))
-        );
-
-        address marketViewFacet = create2(deployer, salt, type(MarketViewFacet).creationCode);
+        address marketViewFacet = create2(deployer, type(MarketViewFacet).creationCode);
 
         bytes4[] memory functionSelectors = new bytes4[](3);
         functionSelectors[0] = IMarketView.getMarket.selector;
@@ -141,11 +123,7 @@ library FacetDeployer {
     }
 
     function deployOwnershipFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
-        bytes32 salt = bytes32(
-            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("OwnershipFacet", 0))))
-        );
-
-        address ownershipFacet = create2(deployer, salt, type(OwnershipFacet).creationCode);
+        address ownershipFacet = create2(deployer, type(OwnershipFacet).creationCode);
 
         bytes4[] memory functionSelectors = new bytes4[](5);
         functionSelectors[0] = IOwnership.owner.selector;
@@ -162,11 +140,7 @@ library FacetDeployer {
     }
 
     function deployUtilsFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
-        bytes32 salt = bytes32(
-            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("UtilsFacet", 0))))
-        );
-
-        address utilsFacet = create2(deployer, salt, type(UtilsFacet).creationCode);
+        address utilsFacet = create2(deployer, type(UtilsFacet).creationCode);
 
         bytes4[] memory functionSelectors = new bytes4[](2);
         functionSelectors[0] = IUtils.permit.selector;
