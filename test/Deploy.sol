@@ -15,7 +15,10 @@ import {CREATEX_ADDRESS, CREATEX_BYTECODE} from "../src/helpers/CreateX.sol";
 library Deploy {
     using FacetDeployer for Deployer;
 
-    function deployFuturesMarket(Vm vm, Deployer deployer, address oracle, address owner) internal returns (IFuturesMarket) {
+    function deployFuturesMarket(Vm vm, Deployer deployer, address oracle, address owner)
+        internal
+        returns (IFuturesMarket)
+    {
         vm.label(CREATEX_ADDRESS, "CreateX");
         vm.etch(CREATEX_ADDRESS, CREATEX_BYTECODE);
 
