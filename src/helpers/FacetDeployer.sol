@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import {IERC3156FlashLender} from "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
 
+import {ICreateX} from "../interfaces/ICreateX.sol";
 import {IDiamond} from "../interfaces/IDiamond.sol";
 import {IMarketManager} from "../interfaces/IMarketManager.sol";
 import {IMarketPosition} from "../interfaces/IMarketPosition.sol";
@@ -16,10 +17,29 @@ import {MarketPositionFacet} from "../facets/MarketPositionFacet.sol";
 import {MarketViewFacet} from "../facets/MarketViewFacet.sol";
 import {OwnershipFacet} from "../facets/OwnershipFacet.sol";
 import {UtilsFacet} from "../facets/UtilsFacet.sol";
+import {CREATEX_ADDRESS} from "./CreateX.sol";
+
+type Deployer is address;
 
 library FacetDeployer {
-    function deployFlashLoanFacet() internal returns (IDiamond.FacetCut memory) {
-        address flashLoanFacet = address(new FlashLoanFacet());
+    function computeAddress(Deployer deployer, bytes32 salt) internal pure returns (address) {
+        bytes32 guardedSalt = keccak256(abi.encodePacked(uint256(uint160(Deployer.unwrap(deployer))), salt));
+        return ICreateX(CREATEX_ADDRESS).computeCreate3Address(guardedSalt, CREATEX_ADDRESS);
+    }
+
+    function deploy(Deployer deployer, bytes32 salt, bytes memory initCode) internal returns (address deployed) {
+        address computedAddress = computeAddress(deployer, salt);
+        deployed = ICreateX(CREATEX_ADDRESS).deployCreate3(salt, initCode);
+        require(computedAddress == deployed, "Address does not match");
+    }
+
+    function deployFlashLoanFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
+        bytes32 salt = bytes32(
+            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("FlashLoanFacet", 0))))
+        );
+
+        address flashLoanFacet = deploy(deployer, salt, type(FlashLoanFacet).creationCode);
+
         bytes4[] memory functionSelectors = new bytes4[](3);
         functionSelectors[0] = IERC3156FlashLender.maxFlashLoan.selector;
         functionSelectors[1] = IERC3156FlashLender.flashFee.selector;
@@ -32,11 +52,21 @@ library FacetDeployer {
         });
     }
 
-    function deployMarketManagerFacet(address oracle, address debtTokenImpl)
+    function deployMarketManagerFacet(Deployer deployer, address oracle, address debtTokenImpl)
         internal
         returns (IDiamond.FacetCut memory)
     {
-        address marketManagerFacet = address(new MarketManagerFacet(oracle, debtTokenImpl));
+        bytes32 salt = bytes32(
+            abi.encodePacked(
+                Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("MarketManagerFacet", 0)))
+            )
+        );
+
+        bytes memory initCode =
+            abi.encodePacked(type(MarketManagerFacet).creationCode, abi.encode(oracle, debtTokenImpl));
+
+        address marketManagerFacet = deploy(deployer, salt, initCode);
+
         bytes4[] memory functionSelectors = new bytes4[](7);
         functionSelectors[0] = IMarketManager.open.selector;
         functionSelectors[1] = IMarketManager.settle.selector;
@@ -53,8 +83,17 @@ library FacetDeployer {
         });
     }
 
-    function deployMarketPositionFacet(address oracle) internal returns (IDiamond.FacetCut memory) {
-        address marketPositionFacet = address(new MarketPositionFacet(oracle));
+    function deployMarketPositionFacet(Deployer deployer, address oracle) internal returns (IDiamond.FacetCut memory) {
+        bytes32 salt = bytes32(
+            abi.encodePacked(
+                Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("MarketPositionFacet", 0)))
+            )
+        );
+
+        bytes memory initCode = abi.encodePacked(type(MarketPositionFacet).creationCode, abi.encode(oracle));
+
+        address marketPositionFacet = deploy(deployer, salt, initCode);
+
         bytes4[] memory functionSelectors = new bytes4[](7);
         functionSelectors[0] = IMarketPosition.deposit.selector;
         functionSelectors[1] = IMarketPosition.withdraw.selector;
@@ -71,8 +110,13 @@ library FacetDeployer {
         });
     }
 
-    function deployMarketViewFacet() internal returns (IDiamond.FacetCut memory) {
-        address marketViewFacet = address(new MarketViewFacet());
+    function deployMarketViewFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
+        bytes32 salt = bytes32(
+            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("MarketViewFacet", 0))))
+        );
+
+        address marketViewFacet = deploy(deployer, salt, type(MarketViewFacet).creationCode);
+
         bytes4[] memory functionSelectors = new bytes4[](3);
         functionSelectors[0] = IMarketView.getMarket.selector;
         functionSelectors[1] = IMarketView.getPosition.selector;
@@ -85,8 +129,13 @@ library FacetDeployer {
         });
     }
 
-    function deployOwnershipFacet() internal returns (IDiamond.FacetCut memory) {
-        address ownershipFacet = address(new OwnershipFacet());
+    function deployOwnershipFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
+        bytes32 salt = bytes32(
+            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("OwnershipFacet", 0))))
+        );
+
+        address ownershipFacet = deploy(deployer, salt, type(OwnershipFacet).creationCode);
+
         bytes4[] memory functionSelectors = new bytes4[](5);
         functionSelectors[0] = IOwnership.owner.selector;
         functionSelectors[1] = IOwnership.pendingOwner.selector;
@@ -101,8 +150,13 @@ library FacetDeployer {
         });
     }
 
-    function deployUtilsFacet() internal returns (IDiamond.FacetCut memory) {
-        address utilsFacet = address(new UtilsFacet());
+    function deployUtilsFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
+        bytes32 salt = bytes32(
+            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("UtilsFacet", 0))))
+        );
+
+        address utilsFacet = deploy(deployer, salt, type(UtilsFacet).creationCode);
+
         bytes4[] memory functionSelectors = new bytes4[](2);
         functionSelectors[0] = IUtils.permit.selector;
         functionSelectors[1] = IUtils.multicall.selector;

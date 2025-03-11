@@ -23,6 +23,7 @@ import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockOracle} from "./mocks/MockOracle.sol";
 import {MockLiquidator} from "./mocks/MockLiquidator.sol";
 import {Deploy} from "./Deploy.sol";
+import {Deployer} from "../src/helpers/FacetDeployer.sol";
 
 contract FuturesMarketTest is Test {
     using Deploy for Vm;
@@ -43,7 +44,7 @@ contract FuturesMarketTest is Test {
         oracle = new MockOracle();
         collateral = new MockERC20("Mock Collateral", "MCK", 6);
 
-        futuresMarket = vm.deployFuturesMarket(address(oracle), address(this));
+        futuresMarket = vm.deployFuturesMarket(Deployer.wrap(address(this)), address(oracle), address(this));
 
         liquidator = new MockLiquidator(futuresMarket);
 
