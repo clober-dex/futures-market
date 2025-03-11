@@ -2,7 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-interface IUtils {
+import {IExtsload} from "./IExtsload.sol";
+import {IExttload} from "./IExttload.sol";
+
+interface IUtils is IExtsload, IExttload {
     /// @notice Allows a user to approve a spender to spend their tokens
     /// @param token Address of the token to approve
     /// @param value Amount of tokens to approve

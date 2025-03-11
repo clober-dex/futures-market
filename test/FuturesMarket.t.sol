@@ -854,4 +854,56 @@ contract FuturesMarketTest is Test {
         vm.expectRevert(abi.encodeWithSelector(MarketDoesNotExist.selector));
         futuresMarket.changeMinDebt(nonExistentMarket, 0.02 ether);
     }
+
+    function test_extsload_single() public {
+        // Store some value in storage
+        bytes32 slot = keccak256("test.slot");
+        bytes32 value = bytes32(uint256(123));
+        vm.store(address(futuresMarket), slot, value);
+
+        // Read using extsload
+        bytes32 result = futuresMarket.extsload(slot);
+        assertEq(result, value, "single slot value mismatch");
+    }
+
+    function test_extsload_multiple_sequential() public {
+        // Store multiple sequential values
+        bytes32 startSlot = keccak256("test.sequential.slot");
+        uint256 nSlots = 3;
+        
+        bytes32[] memory expectedValues = new bytes32[](nSlots);
+        for (uint256 i = 0; i < nSlots; i++) {
+            bytes32 value = bytes32(uint256(i + 1));
+            vm.store(address(futuresMarket), bytes32(uint256(startSlot) + i), value);
+            expectedValues[i] = value;
+        }
+
+        // Read using sequential extsload
+        bytes32[] memory results = futuresMarket.extsload(startSlot, nSlots);
+        
+        assertEq(results.length, nSlots, "number of slots mismatch");
+        for (uint256 i = 0; i < nSlots; i++) {
+            assertEq(results[i], expectedValues[i], "sequential slot value mismatch");
+        }
+    }
+
+    function test_extsload_multiple_arbitrary() public {
+        // Store values at arbitrary slots
+        bytes32[] memory slots = new bytes32[](3);
+        bytes32[] memory expectedValues = new bytes32[](3);
+        
+        for (uint256 i = 0; i < slots.length; i++) {
+            slots[i] = keccak256(abi.encode("test.arbitrary.slot", i));
+            expectedValues[i] = bytes32(uint256(i + 100));
+            vm.store(address(futuresMarket), slots[i], expectedValues[i]);
+        }
+
+        // Read using arbitrary slots extsload
+        bytes32[] memory results = futuresMarket.extsload(slots);
+        
+        assertEq(results.length, slots.length, "number of arbitrary slots mismatch");
+        for (uint256 i = 0; i < slots.length; i++) {
+            assertEq(results[i], expectedValues[i], "arbitrary slot value mismatch");
+        }
+    }
 }

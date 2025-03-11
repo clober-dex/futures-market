@@ -142,9 +142,14 @@ library FacetDeployer {
     function deployUtilsFacet(Deployer deployer) internal returns (IDiamond.FacetCut memory) {
         address utilsFacet = create2(deployer, type(UtilsFacet).creationCode);
 
-        bytes4[] memory functionSelectors = new bytes4[](2);
+        bytes4[] memory functionSelectors = new bytes4[](7);
         functionSelectors[0] = IUtils.permit.selector;
         functionSelectors[1] = IUtils.multicall.selector;
+        functionSelectors[2] = 0x1e2eaeaf; // extsload(bytes32)
+        functionSelectors[3] = 0x35fd631a; // extsload(bytes32,uint256)
+        functionSelectors[4] = 0xdbd035ff; // extsload(bytes32[])
+        functionSelectors[5] = 0xf135baaa; // exttload(bytes32)
+        functionSelectors[6] = 0x9bf6645f; // exttload(bytes32[])
 
         return IDiamond.FacetCut({
             facetAddress: utilsFacet,
