@@ -22,8 +22,12 @@ library Deploy {
         vm.label(CREATEX_ADDRESS, "CreateX");
         vm.etch(CREATEX_ADDRESS, CREATEX_BYTECODE);
 
-        address diamond = address(new FuturesMarket(owner));
-        address debtTokenImpl = address(new Debt(diamond));
+        bytes32 salt = bytes32(
+            abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("FuturesMarket", 0))))
+        );
+        address diamond = deployer.create3(salt, abi.encodePacked(type(FuturesMarket).creationCode, abi.encode(owner)));
+        salt = bytes32(abi.encodePacked(Deployer.unwrap(deployer), hex"00", bytes11(keccak256(abi.encode("Debt", 0)))));
+        address debtTokenImpl = deployer.create2(salt, abi.encodePacked(type(Debt).creationCode, abi.encode(diamond)));
 
         IDiamond.FacetCut[] memory cut = new IDiamond.FacetCut[](6);
         cut[0] = deployer.deployFlashLoanFacet();
