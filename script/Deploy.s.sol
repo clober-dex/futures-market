@@ -39,6 +39,7 @@ contract DeployScript is Script {
             )
         );
         console.log("Oracle deployed at", oracle);
+        vm.stopBroadcast();
     }
 
     function deployMarket(address oracle) public {
