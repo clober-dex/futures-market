@@ -644,7 +644,8 @@ contract FuturesMarketTest is Test {
         futuresMarket.deposit(debtToken, address(this), 100_000 * 1e6);
         futuresMarket.mint(debtToken, address(this), 200 * 1e18);
 
-        bytes memory burnData = abi.encodeWithSelector(futuresMarket.burn.selector, debtToken, address(this), 200 * 1e18);
+        bytes memory burnData =
+            abi.encodeWithSelector(futuresMarket.burn.selector, debtToken, address(this), 200 * 1e18);
         bytes memory withdrawData =
             abi.encodeWithSelector(futuresMarket.withdraw.selector, debtToken, address(this), 100_000 * 1e6);
 
