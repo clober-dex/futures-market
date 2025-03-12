@@ -637,6 +637,34 @@ contract FuturesMarketTest is Test {
         assertEq(collateral.balanceOf(address(this)), 30_000 * 1e6, "collateral balance mismatch");
     }
 
+    function test_multicall_burnWithdrawAll() public {
+        address debtToken = _open(_defaultConfig());
+        collateral.mint(address(this), 100_000 * 1e6);
+        collateral.approve(address(futuresMarket), 100_000 * 1e6);
+        futuresMarket.deposit(debtToken, address(this), 100_000 * 1e6);
+        futuresMarket.mint(debtToken, address(this), 200 * 1e18);
+
+        bytes memory burnData = abi.encodeWithSelector(futuresMarket.burn.selector, debtToken, address(this), 200 * 1e18);
+        bytes memory withdrawData =
+            abi.encodeWithSelector(futuresMarket.withdraw.selector, debtToken, address(this), 100_000 * 1e6);
+
+        bytes[] memory calls = new bytes[](2);
+        calls[0] = burnData;
+        calls[1] = withdrawData;
+
+        vm.expectEmit(address(futuresMarket));
+        emit IMarketPosition.Burn(debtToken, address(this), address(this), 200 * 1e18);
+        vm.expectEmit(address(futuresMarket));
+        emit IMarketPosition.Withdraw(debtToken, address(this), address(this), 100_000 * 1e6);
+        futuresMarket.multicall(calls);
+
+        (uint128 collateralAmount, uint128 debtAmount) = futuresMarket.getPosition(debtToken, address(this));
+        assertEq(collateralAmount, 0, "collateral mismatch");
+        assertEq(debtAmount, 0, "debt mismatch");
+        assertEq(IERC20(debtToken).balanceOf(address(this)), 0, "debt balance mismatch");
+        assertEq(collateral.balanceOf(address(this)), 100_000 * 1e6, "collateral balance mismatch");
+    }
+
     function test_multicall_updateOracleLiquidate() public {
         address debtToken = _open(_defaultConfig());
         collateral.mint(address(this), 100_000 * 1e6);

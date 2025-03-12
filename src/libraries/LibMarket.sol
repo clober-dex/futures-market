@@ -24,7 +24,7 @@ library LibMarket {
         uint256 collateralPrecision = 10 ** IERC20Metadata(market.collateral).decimals();
         Market.Position memory position = market.positions[user];
         return uint256(position.collateral) * ratio * LibOracle.PRECISION * DEBT_PRECISION
-            > uint256(position.debt) * relativePrice * RATE_PRECISION * collateralPrecision;
+            >= uint256(position.debt) * relativePrice * RATE_PRECISION * collateralPrecision;
     }
 
     function isUnderLtv(Market.Storage storage market, address user, uint256 relativePrice)
