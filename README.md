@@ -136,6 +136,11 @@ Reasons for choosing Pull Oracle:
      2. Mint debt tokens to create leverage
      3. Monitor position's health ratio
    
+   - **Trading Hours Restriction**:
+     - For stock futures, position minting, withdrawal, and liquidation are only available during stock market trading hours
+     - This restriction ensures alignment with traditional stock market operations
+     - Other operations remain available 24/7
+
    - **Managing Risk**:
      - Add more collateral to avoid liquidation
      - Burn debt tokens to reduce exposure
