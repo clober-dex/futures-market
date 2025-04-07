@@ -56,7 +56,7 @@ contract FuturesMarketTest is Test, DiamondScript("FuturesMarket") {
         futuresMarket = IFuturesMarket(
             deploy(
                 abi.encode(address(this)),
-                bytes32(0),
+                Constant.SALT,
                 facetNames,
                 facetArgs,
                 init,
