@@ -9,25 +9,23 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/interfaces/IERC3156FlashLender.sol";
+import "diamond/helpers/CreateX.sol";
+import "diamond/helpers/DiamondScript.sol";
 
 import "../src/Errors.sol";
-import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
-import {IDiamondLoupe} from "../src/interfaces/IDiamondLoupe.sol";
 import {IFuturesMarket} from "../src/interfaces/IFuturesMarket.sol";
 import {IOracle} from "../src/interfaces/IOracle.sol";
 import {IMarketPosition} from "../src/interfaces/IMarketPosition.sol";
 import {IMarketManager} from "../src/interfaces/IMarketManager.sol";
 import {IMarketView} from "../src/interfaces/IMarketView.sol";
 import {LibMarket} from "../src/libraries/LibMarket.sol";
+import {Debt} from "../src/Debt.sol";
+import {Init} from "../src/helpers/Init.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockOracle} from "./mocks/MockOracle.sol";
 import {MockLiquidator} from "./mocks/MockLiquidator.sol";
-import {Deploy} from "./Deploy.sol";
-import {Deployer} from "../src/helpers/FacetDeployer.sol";
 
-contract FuturesMarketTest is Test {
-    using Deploy for Vm;
-
+contract FuturesMarketTest is Test, DiamondScript("FuturesMarket") {
     IFuturesMarket public futuresMarket;
     IOracle public oracle;
     MockERC20 public collateral;
@@ -40,11 +38,44 @@ contract FuturesMarketTest is Test {
     bytes32 constant DEBT_ASSET_ID = keccak256("DEBT");
     uint40 constant FUTURE_EXPIRATION = 1699999999;
 
+    string[] facetNames;
+    bytes[] facetArgs;
+
     function setUp() public {
         oracle = new MockOracle();
         collateral = new MockERC20("Mock Collateral", "MCK", 6);
 
-        futuresMarket = vm.deployFuturesMarket(Deployer.wrap(address(this)), address(oracle), address(this));
+        address expectedDiamondAddress = computeDiamondAddress(address(this), bytes32(0));
+
+        address debtTokenImpl = CreateX.create2(
+            address(this), abi.encodePacked(type(Debt).creationCode, abi.encode(expectedDiamondAddress))
+        );
+
+        facetNames.push("FlashLoanFacet");
+        facetArgs.push("");
+        facetNames.push("MarketManagerFacet");
+        facetArgs.push(abi.encode(address(oracle), debtTokenImpl));
+        facetNames.push("MarketPositionFacet");
+        facetArgs.push(abi.encode(address(oracle)));
+        facetNames.push("MarketViewFacet");
+        facetArgs.push("");
+        facetNames.push("UtilsFacet");
+        facetArgs.push("");
+
+        address init = address(new Init());
+
+        futuresMarket = IFuturesMarket(
+            deploy(
+                abi.encode(address(this)),
+                bytes32(0),
+                facetNames,
+                facetArgs,
+                init,
+                abi.encodeWithSelector(Init.init.selector),
+                false
+            ).diamond
+        );
+        assertEq(address(futuresMarket), expectedDiamondAddress);
 
         liquidator = new MockLiquidator(futuresMarket);
 

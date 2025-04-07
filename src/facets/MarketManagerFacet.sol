@@ -3,11 +3,11 @@
 pragma solidity ^0.8.0;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Ownable} from "diamond/Ownable.sol";
 
 import {InvalidConfig, NotExpired} from "../Errors.sol";
 import {IMarketManager} from "../interfaces/IMarketManager.sol";
 import {IOracle} from "../interfaces/IOracle.sol";
-import {Ownable} from "./Ownable.sol";
 import {Market} from "../storages/Market.sol";
 import {Debt} from "../Debt.sol";
 import {LibMarket} from "../libraries/LibMarket.sol";

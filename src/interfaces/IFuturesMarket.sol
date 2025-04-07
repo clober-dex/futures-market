@@ -2,26 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-
-import {IDiamondCut} from "./IDiamondCut.sol";
-import {IDiamondLoupe} from "./IDiamondLoupe.sol";
+import {IDiamondApp} from "diamond/interfaces/IDiamondApp.sol";
 import {IMarketManager} from "./IMarketManager.sol";
 import {IMarketPosition} from "./IMarketPosition.sol";
 import {IMarketView} from "./IMarketView.sol";
-import {IOwnership} from "./IOwnership.sol";
 import {IUtils} from "./IUtils.sol";
 
 /// @title Futures Market Interface
 /// @notice Aggregates all interfaces required for the futures market functionality
 /// @dev Implements diamond pattern interfaces along with market-specific functionality
-interface IFuturesMarket is
-    IDiamondCut,
-    IDiamondLoupe,
-    IERC165,
-    IMarketManager,
-    IMarketPosition,
-    IMarketView,
-    IOwnership,
-    IUtils
-{}
+interface IFuturesMarket is IDiamondApp, IMarketManager, IMarketPosition, IMarketView, IUtils {}

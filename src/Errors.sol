@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-error OwnableUnauthorizedAccount(address account);
 error InvalidConfig();
 error NotExpired();
 error InsufficientCollateral();
