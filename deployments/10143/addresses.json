@@ -1,12 +1,4 @@
 {
-    "FuturesMarket": "0x86Add33C407dB62b44E08BC326b4F5CD1eBA575f",
     "PythOracle": "0x51b7bf333aa6425B951da4C42105d94F68F6e80E",
-    "PythOracle_Implementation": "0xa57D1c7630b138E4149BABa0C2A07c8D4f0b5C80",
-    "DebtTokenImpl": "0x214F6E11153Bec83cf1C7493005528272630867C",
-    "FlashLoanFacet": "0xb3ce5812e32d3f9a846c2Dab278b94C4594f3301",
-    "MarketManagerFacet": "0x9c68299F246fC820CCF7554696d51112EDe6cbb9",
-    "MarketPositionFacet": "0x599a52C62f29CdE350dE081AcbbA4bB5DD3DC894",
-    "MarketViewFacet": "0xe98af2ceA40f63445B19C3eB966142C03C3c9c90",
-    "OwnershipFacet": "0x6EEF6Da9be12db132f2E610255dd1C5e931f2dA0",
-    "UtilsFacet": "0xD09d44A06CE5076556181b69f91CF1686b97f612"
+    "PythOracle_Implementation": "0xa57D1c7630b138E4149BABa0C2A07c8D4f0b5C80"
 }
