@@ -8,7 +8,11 @@ remappings = [
     "forge-std/=lib/openzeppelin-contracts/lib/forge-std/src/",
     "halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/",
     "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/",
+    "@pythnetwork/pyth-sdk-solidity/=node_modules/@pythnetwork/pyth-sdk-solidity/",
+    "diamond/=lib/diamond/src/"
 ]
-fs_permissions = [{ access = "read", path = "./deployments" }]
+fs_permissions = [{ access = "read", path = "./out"}, { access = "read-write", path = "./deployments"}]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
