@@ -10,6 +10,7 @@ import {IDiamond} from "diamond/helpers/DiamondScript.sol";
 import {PythOracle} from "../src/PythOracle.sol";
 import {Debt} from "../src/Debt.sol";
 import {Init} from "../src/helpers/Init.sol";
+import {Constant} from "../src/helpers/Constant.sol";
 
 contract DeployScript is DiamondScript("FuturesMarket") {
     using stdJson for string;
@@ -44,24 +45,12 @@ contract DeployScript is DiamondScript("FuturesMarket") {
         address owner = deployer;
         address oracle = json.readAddress(".PythOracle");
 
-        bytes32 salt = bytes32(0);
+        bytes32 salt = Constant.SALT;
         address expectedMarketAddress = computeDiamondAddress(deployer, salt);
         address debtTokenImpl =
             CreateX.create2(deployer, abi.encodePacked(type(Debt).creationCode, abi.encode(expectedMarketAddress)));
 
-        string[] memory facetNames = new string[](5);
-        bytes[] memory facetArgs = new bytes[](5);
-
-        facetNames[0] = "FlashLoanFacet";
-        facetArgs[0] = abi.encode("");
-        facetNames[1] = "MarketManagerFacet";
-        facetArgs[1] = abi.encode(oracle, debtTokenImpl);
-        facetNames[2] = "MarketPositionFacet";
-        facetArgs[2] = abi.encode(oracle);
-        facetNames[3] = "MarketViewFacet";
-        facetArgs[3] = abi.encode("");
-        facetNames[4] = "UtilsFacet";
-        facetArgs[4] = abi.encode("");
+        (string[] memory facetNames, bytes[] memory facetArgs) = Constant.getFacetData(oracle, debtTokenImpl);
 
         address init = address(new Init());
 

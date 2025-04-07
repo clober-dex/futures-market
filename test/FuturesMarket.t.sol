@@ -21,6 +21,7 @@ import {IMarketView} from "../src/interfaces/IMarketView.sol";
 import {LibMarket} from "../src/libraries/LibMarket.sol";
 import {Debt} from "../src/Debt.sol";
 import {Init} from "../src/helpers/Init.sol";
+import {Constant} from "../src/helpers/Constant.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockOracle} from "./mocks/MockOracle.sol";
 import {MockLiquidator} from "./mocks/MockLiquidator.sol";
@@ -38,29 +39,17 @@ contract FuturesMarketTest is Test, DiamondScript("FuturesMarket") {
     bytes32 constant DEBT_ASSET_ID = keccak256("DEBT");
     uint40 constant FUTURE_EXPIRATION = 1699999999;
 
-    string[] facetNames;
-    bytes[] facetArgs;
-
     function setUp() public {
         oracle = new MockOracle();
         collateral = new MockERC20("Mock Collateral", "MCK", 6);
 
-        address expectedDiamondAddress = computeDiamondAddress(address(this), bytes32(0));
+        address expectedDiamondAddress = computeDiamondAddress(address(this), Constant.SALT);
 
         address debtTokenImpl = CreateX.create2(
             address(this), abi.encodePacked(type(Debt).creationCode, abi.encode(expectedDiamondAddress))
         );
 
-        facetNames.push("FlashLoanFacet");
-        facetArgs.push("");
-        facetNames.push("MarketManagerFacet");
-        facetArgs.push(abi.encode(address(oracle), debtTokenImpl));
-        facetNames.push("MarketPositionFacet");
-        facetArgs.push(abi.encode(address(oracle)));
-        facetNames.push("MarketViewFacet");
-        facetArgs.push("");
-        facetNames.push("UtilsFacet");
-        facetArgs.push("");
+        (string[] memory facetNames, bytes[] memory facetArgs) = Constant.getFacetData(address(oracle), debtTokenImpl);
 
         address init = address(new Init());
 
