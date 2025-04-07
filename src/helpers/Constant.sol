@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 library Constant {
-    bytes32 constant SALT = bytes32(0);
+    bytes32 constant SALT = bytes32(uint256(2));
 
     function getFacetData(address oracle, address debtTokenImpl)
         internal
