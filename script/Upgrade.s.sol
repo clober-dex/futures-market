@@ -14,7 +14,7 @@ contract UpgradeScript is DiamondScript("FuturesMarket") {
         string memory json = loadDeployment();
 
         address deployer = msg.sender;
-        address oracle = json.readAddress("PythOracle");
+        address oracle = json.readAddress(".PythOracle");
         address marketAddress = computeDiamondAddress(deployer, bytes32(0));
         address debtTokenImpl =
             CreateX.create2(deployer, abi.encodePacked(type(Debt).creationCode, abi.encode(marketAddress)));

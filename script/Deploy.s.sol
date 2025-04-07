@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script, console, stdJson} from "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {CreateX} from "diamond/helpers/CreateX.sol";
 import {DiamondScript} from "diamond/helpers/DiamondScript.sol";
@@ -12,6 +12,8 @@ import {Debt} from "../src/Debt.sol";
 import {Init} from "../src/helpers/Init.sol";
 
 contract DeployScript is DiamondScript("FuturesMarket") {
+    using stdJson for string;
+
     function setUp() public {}
 
     function deployOracle() public broadcast {
@@ -35,9 +37,12 @@ contract DeployScript is DiamondScript("FuturesMarket") {
         console.log("Oracle deployed at", oracle);
     }
 
-    function deployMarket(address oracle) public broadcast {
+    function deployMarket() public broadcast {
+        string memory json = loadDeployment();
+
         address deployer = msg.sender;
         address owner = deployer;
+        address oracle = json.readAddress(".PythOracle");
 
         bytes32 salt = bytes32(0);
         address expectedMarketAddress = computeDiamondAddress(deployer, salt);
