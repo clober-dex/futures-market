@@ -20,13 +20,13 @@ contract DeployScript is DiamondScript("FuturesMarket") {
     function deployOracle() public broadcast {
         address deployer = msg.sender;
         address owner = deployer;
-        address pyth = 0x2880aB155794e7179c9eE2e38200202908C17B43;
+        address pyth = 0xad2B52D2af1a9bD5c561894Cdd84f7505e1CD0B5;
         uint256 interval = 60;
         address implementation =
             CreateX.create2(deployer, abi.encodePacked(type(PythOracle).creationCode, abi.encode(pyth, interval)));
         console.log("Oracle implementation deployed at", address(implementation));
 
-        bytes11 salt = bytes11(keccak256(abi.encode("PythOracle", 0)));
+        bytes11 salt = bytes11(keccak256(abi.encode("PythOracle", 1)));
         address oracle = CreateX.create3(
             deployer,
             salt,
