@@ -36,6 +36,15 @@ contract DeployScript is DiamondScript("FuturesMarket") {
             )
         );
         console.log("Oracle deployed at", oracle);
+
+        // Save deployment
+        string memory path = getDeploymentPath();
+        if (vm.exists(path)) {
+            vm.serializeJson("root key", vm.readFile(path));
+        }
+        vm.serializeAddress("root key", "PythOracle_Implementation", implementation);
+        string memory json = vm.serializeAddress("root key", "PythOracle", oracle);
+        vm.writeJson(json, path);
     }
 
     function deployMarket() public broadcast {
