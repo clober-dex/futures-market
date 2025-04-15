@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 library Constant {
     bytes32 constant SALT = bytes32(uint256(3));
+    address constant PYTH_FEED_ADDRESS = 0xad2B52D2af1a9bD5c561894Cdd84f7505e1CD0B5;
+    uint256 constant PRICE_UPDATE_INTERVAL = 3 days;
 
     function getFacetData(address oracle, address debtTokenImpl)
         internal

@@ -14,14 +14,14 @@ import {IOracle} from "./interfaces/IOracle.sol";
 contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
     uint8 public constant decimals = 18;
 
+    event PriceUpdateIntervalChanged(uint256 oldInterval, uint256 newInterval);
+
     IPyth public immutable pyth;
-    uint256 public immutable priceUpdateInterval;
-
     mapping(address => bytes32) public getAssetId;
+    uint256 public priceUpdateInterval;
 
-    constructor(address pyth_, uint256 priceUpdateInterval_) Ownable(msg.sender) {
+    constructor(address pyth_) Ownable(msg.sender) {
         pyth = IPyth(pyth_);
-        priceUpdateInterval = priceUpdateInterval_;
     }
 
     function initialize(address initialOwner) external initializer {
@@ -29,6 +29,12 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    function setPriceUpdateInterval(uint256 interval) external onlyOwner {
+        uint256 oldInterval = priceUpdateInterval;
+        priceUpdateInterval = interval;
+        emit PriceUpdateIntervalChanged(oldInterval, interval);
+    }
 
     function getAssetPrice(address asset) public view returns (uint256) {
         return getAssetPrice(getAssetId[asset]);
