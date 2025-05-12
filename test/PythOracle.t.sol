@@ -31,12 +31,22 @@ contract PythOracleTest is Test {
 
         // Deploy implementation and proxy
         implementation = new PythOracle(pyth);
-        oracle = PythOracle(address(new ERC1967Proxy(address(implementation), abi.encodeWithSelector(PythOracle.initialize.selector, owner))));
+        oracle = PythOracle(
+            address(
+                new ERC1967Proxy(address(implementation), abi.encodeWithSelector(PythOracle.initialize.selector, owner))
+            )
+        );
         oracle.setPriceUpdateInterval(PRICE_UPDATE_INTERVAL);
 
         // Deploy fallback oracle implementation and proxy
         FallbackOracle fallbackImpl = new FallbackOracle();
-        fallbackOracle = FallbackOracle(address(new ERC1967Proxy(address(fallbackImpl), abi.encodeWithSelector(FallbackOracle.initialize.selector, owner))));
+        fallbackOracle = FallbackOracle(
+            address(
+                new ERC1967Proxy(
+                    address(fallbackImpl), abi.encodeWithSelector(FallbackOracle.initialize.selector, owner)
+                )
+            )
+        );
     }
 
     function test_initialization() public view {
@@ -83,18 +93,10 @@ contract PythOracleTest is Test {
         updateData[0] = abi.encode(ASSET_ID, PRICE);
 
         // Mock Pyth update fee
-        vm.mockCall(
-            pyth,
-            abi.encodeWithSelector(IPyth.getUpdateFee.selector, updateData),
-            abi.encode(0.001 ether)
-        );
+        vm.mockCall(pyth, abi.encodeWithSelector(IPyth.getUpdateFee.selector, updateData), abi.encode(0.001 ether));
 
         // Mock Pyth update price feeds
-        vm.mockCall(
-            pyth,
-            abi.encodeWithSelector(IPyth.updatePriceFeeds.selector, updateData),
-            ""
-        );
+        vm.mockCall(pyth, abi.encodeWithSelector(IPyth.updatePriceFeeds.selector, updateData), "");
 
         oracle.updatePrice{value: 0.001 ether}(abi.encode(updateData));
     }
@@ -158,4 +160,4 @@ contract PythOracleTest is Test {
         vm.expectRevert(IFallbackOracle.PriceTooOld.selector);
         oracle.getAssetPrice(ASSET);
     }
-} 
+}

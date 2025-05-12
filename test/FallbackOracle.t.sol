@@ -22,7 +22,13 @@ contract FallbackOracleTest is Test {
         nonOwner = address(0xBEEF);
         operator = address(0xCAFE);
         implementation = new FallbackOracle();
-        oracle = FallbackOracle(address(new ERC1967Proxy(address(implementation), abi.encodeWithSelector(FallbackOracle.initialize.selector, owner))));
+        oracle = FallbackOracle(
+            address(
+                new ERC1967Proxy(
+                    address(implementation), abi.encodeWithSelector(FallbackOracle.initialize.selector, owner)
+                )
+            )
+        );
         oracle.setPriceMaxAge(MAX_AGE);
     }
 
@@ -81,4 +87,4 @@ contract FallbackOracleTest is Test {
         oracle.setPriceMaxAge(newMaxAge);
         assertEq(oracle.priceMaxAge(), newMaxAge);
     }
-} 
+}

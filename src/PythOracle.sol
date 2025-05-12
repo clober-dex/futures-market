@@ -55,8 +55,8 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
             return PythUtils.convertToUint(currentPrice.price, currentPrice.expo, decimals);
         } catch {
             if (address(_fallbackOracle) == address(0)) revert NoFallbackOracle();
-            
-            (uint256 price, ) = _fallbackOracle.getPriceData(assetId);
+
+            (uint256 price,) = _fallbackOracle.getPriceData(assetId);
             return price;
         }
     }

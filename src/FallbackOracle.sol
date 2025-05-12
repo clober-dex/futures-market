@@ -38,10 +38,7 @@ contract FallbackOracle is IFallbackOracle, UUPSUpgradeable, Initializable, Owna
     }
 
     function updatePrice(bytes32 assetId, uint256 price) external onlyOperator {
-        _priceData[assetId] = PriceData({
-            price: price,
-            timestamp: block.timestamp
-        });
+        _priceData[assetId] = PriceData({price: price, timestamp: block.timestamp});
 
         emit PriceUpdated(assetId, price, block.timestamp);
     }
