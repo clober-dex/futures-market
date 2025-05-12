@@ -42,4 +42,12 @@ contract MockOracle is IOracle {
         getAssetId[asset] = assetId;
         emit AssetIdSet(asset, assetId);
     }
+
+    function getFallbackOracle() external pure returns (address) {
+        return address(0);
+    }
+
+    function setFallbackOracle(address) external {
+        // Mock implementation does nothing
+    }
 }

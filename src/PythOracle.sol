@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 import {IOracle} from "./interfaces/IOracle.sol";
+import {IFallbackOracle} from "./interfaces/IFallbackOracle.sol";
 
 contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
     uint8 public constant decimals = 18;
@@ -19,6 +20,7 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
     IPyth public immutable pyth;
     mapping(address => bytes32) public getAssetId;
     uint256 public priceUpdateInterval;
+    IFallbackOracle internal _fallbackOracle;
 
     constructor(address pyth_) Ownable(msg.sender) {
         pyth = IPyth(pyth_);
@@ -49,8 +51,14 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
     }
 
     function getAssetPrice(bytes32 assetId) public view returns (uint256) {
-        PythStructs.Price memory currentPrice = pyth.getPriceNoOlderThan(assetId, priceUpdateInterval);
-        return PythUtils.convertToUint(currentPrice.price, currentPrice.expo, decimals);
+        try pyth.getPriceNoOlderThan(assetId, priceUpdateInterval) returns (PythStructs.Price memory currentPrice) {
+            return PythUtils.convertToUint(currentPrice.price, currentPrice.expo, decimals);
+        } catch {
+            if (address(_fallbackOracle) == address(0)) revert NoFallbackOracle();
+            
+            (uint256 price, ) = _fallbackOracle.getPriceData(assetId);
+            return price;
+        }
     }
 
     function getAssetsPrices(bytes32[] calldata assetIds) external view returns (uint256[] memory prices) {
@@ -58,6 +66,10 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
         for (uint256 i = 0; i < assetIds.length; ++i) {
             prices[i] = getAssetPrice(assetIds[i]);
         }
+    }
+
+    function getFallbackOracle() external view returns (address) {
+        return address(_fallbackOracle);
     }
 
     function updatePrice(bytes calldata data) external payable {
@@ -69,5 +81,10 @@ contract PythOracle is IOracle, UUPSUpgradeable, Initializable, Ownable2Step {
     function setAssetId(address asset, bytes32 assetId) external onlyOwner {
         getAssetId[asset] = assetId;
         emit AssetIdSet(asset, assetId);
+    }
+
+    function setFallbackOracle(address newFallbackOracle) external onlyOwner {
+        _fallbackOracle = IFallbackOracle(newFallbackOracle);
+        emit SetFallbackOracle(newFallbackOracle);
     }
 }

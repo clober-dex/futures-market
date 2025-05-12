@@ -6,10 +6,17 @@ pragma solidity ^0.8.0;
 /// @notice Interface for retrieving and updating asset price data
 /// @dev Handles price data for both address-based and ID-based asset identification
 interface IOracle {
+    /// @notice Error thrown when a fallback oracle is not set
+    error NoFallbackOracle();
+
     /// @notice Emitted when the asset identifier is set.
     /// @param asset The address of the asset.
     /// @param assetId The identifier of the asset.
     event AssetIdSet(address indexed asset, bytes32 assetId);
+
+    /// @notice Emitted when the fallback oracle is set.
+    /// @param newFallbackOracle The address of the fallback oracle.
+    event SetFallbackOracle(address indexed newFallbackOracle);
 
     /// @notice Retrieves the number of decimals used by the oracle.
     /// @return The number of decimals.
@@ -44,8 +51,16 @@ interface IOracle {
     /// @return The identifier of the asset.
     function getAssetId(address asset) external view returns (bytes32);
 
+    /// @notice Retrieves the fallback oracle.
+    /// @return The address of the fallback oracle.
+    function getFallbackOracle() external view returns (address);
+
     /// @notice Sets the asset identifier for a given asset.
     /// @param asset The address of the asset.
     /// @param assetId The identifier of the asset.
     function setAssetId(address asset, bytes32 assetId) external;
+
+    /// @notice Sets the fallback oracle.
+    /// @param newFallbackOracle The address of the fallback oracle.
+    function setFallbackOracle(address newFallbackOracle) external;
 }
