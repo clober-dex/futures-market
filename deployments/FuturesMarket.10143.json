@@ -1,4 +1,6 @@
 {
+  "FallbackOracle": "0xe01a781e7baF7b07a7cE9311a885633D32aE89F3",
+  "FallbackOracle_Implementation": "0x1783aAcD2D7E79E712E0B722D2bC8ee32F5C47Dc",
   "FuturesMarket": "0x56b88CFe40d592Ec4d4234043e039d7CA807f110",
   "FuturesMarketFacets": {
     "FlashLoanFacet": "0x9A82d4AB1D4D528f6Ab6d9297Ac6956C074C49c2",
@@ -8,5 +10,5 @@
     "UtilsFacet": "0x516CF52acBc609Ee5E3784f1c79FDba37D6E9067"
   },
   "PythOracle": "0xFAC34076fc84579916573c2C307d70304caB2c8E",
-  "PythOracle_Implementation": "0xA7c090e16F5F224DD12631d90Ed563E72140c5C1"
+  "PythOracle_Implementation": "0xD6520a92e926A294d26055F8Ebfe9A78E1Ff6C3C"
 }

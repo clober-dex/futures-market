@@ -8,6 +8,7 @@ import {DiamondScript} from "diamond/helpers/DiamondScript.sol";
 import {IDiamond} from "diamond/helpers/DiamondScript.sol";
 
 import {PythOracle} from "../src/PythOracle.sol";
+import {FallbackOracle} from "../src/FallbackOracle.sol";
 import {Debt} from "../src/Debt.sol";
 import {Init} from "../src/helpers/Init.sol";
 import {Constant} from "../src/helpers/Constant.sol";
@@ -68,5 +69,33 @@ contract DeployScript is DiamondScript("FuturesMarket") {
         require(address(market) == expectedMarketAddress, "Market address does not match");
 
         console.log("FuturesMarket deployed at", address(market));
+    }
+
+    function deployFallbackOracle() public broadcast {
+        address deployer = msg.sender;
+        address owner = deployer;
+        address implementation =
+            CreateX.create2(deployer, abi.encodePacked(type(FallbackOracle).creationCode, abi.encode(owner)));
+        console.log("FallbackOracle implementation deployed at", address(implementation));
+
+        bytes11 salt = bytes11(keccak256(abi.encode("FallbackOracle", 1)));
+        address oracle = CreateX.create3(
+            deployer,
+            salt,
+            abi.encodePacked(
+                type(ERC1967Proxy).creationCode,
+                abi.encode(implementation, abi.encodeWithSelector(FallbackOracle.initialize.selector, owner))
+            )
+        );
+        console.log("FallbackOracle deployed at", oracle);
+
+        // Save deployment
+        string memory path = getDeploymentPath();
+        if (vm.exists(path)) {
+            vm.serializeJson("root key", vm.readFile(path));
+        }
+        vm.serializeAddress("root key", "FallbackOracle_Implementation", implementation);
+        string memory json = vm.serializeAddress("root key", "FallbackOracle", oracle);
+        vm.writeJson(json, path);
     }
 }
