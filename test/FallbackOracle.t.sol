@@ -87,4 +87,45 @@ contract FallbackOracleTest is Test {
         oracle.setPriceMaxAge(newMaxAge);
         assertEq(oracle.priceMaxAge(), newMaxAge);
     }
+
+    function test_updatePrices_batch() public {
+        oracle.setOperator(owner, true);
+        bytes32[] memory assetIds = new bytes32[](2);
+        uint256[] memory prices = new uint256[](2);
+        assetIds[0] = keccak256("A");
+        assetIds[1] = keccak256("B");
+        prices[0] = 1e18;
+        prices[1] = 2e18;
+
+        vm.expectEmit(address(oracle));
+        emit IFallbackOracle.PriceUpdated(assetIds[0], prices[0], block.timestamp);
+        vm.expectEmit(address(oracle));
+        emit IFallbackOracle.PriceUpdated(assetIds[1], prices[1], block.timestamp);
+        oracle.updatePrices(assetIds, prices);
+
+        (uint256 p0,) = oracle.getPriceData(assetIds[0]);
+        (uint256 p1,) = oracle.getPriceData(assetIds[1]);
+        assertEq(p0, prices[0]);
+        assertEq(p1, prices[1]);
+    }
+
+    function test_updatePrices_onlyOperator() public {
+        bytes32[] memory assetIds = new bytes32[](1);
+        uint256[] memory prices = new uint256[](1);
+        assetIds[0] = keccak256("A");
+        prices[0] = 1e18;
+        vm.expectRevert(IFallbackOracle.NotOperator.selector);
+        oracle.updatePrices(assetIds, prices);
+    }
+
+    function test_updatePrices_lengthMismatch() public {
+        oracle.setOperator(owner, true);
+        bytes32[] memory assetIds = new bytes32[](2);
+        uint256[] memory prices = new uint256[](1);
+        assetIds[0] = keccak256("A");
+        assetIds[1] = keccak256("B");
+        prices[0] = 1e18;
+        vm.expectRevert("Length");
+        oracle.updatePrices(assetIds, prices);
+    }
 }
