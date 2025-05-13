@@ -33,8 +33,28 @@ contract FallbackOracle is IFallbackOracle, UUPSUpgradeable, Initializable, Owna
 
     function getPriceData(bytes32 assetId) external view returns (uint256 price, uint256 timestamp) {
         PriceData memory data = _priceData[assetId];
-        if (block.timestamp - data.timestamp > priceMaxAge) revert PriceTooOld();
         return (data.price, data.timestamp);
+    }
+
+    function getValidPrice(bytes32 assetId) external view returns (uint256 price) {
+        PriceData memory data = _priceData[assetId];
+        if (data.price == 0) revert PriceFeedNotFound();
+        if (block.timestamp - data.timestamp > priceMaxAge) revert PriceTooOld();
+        return data.price;
+    }
+
+    function getPricesData(bytes32[] calldata assetIds)
+        external
+        view
+        returns (uint256[] memory prices, uint256[] memory timestamps)
+    {
+        prices = new uint256[](assetIds.length);
+        timestamps = new uint256[](assetIds.length);
+        for (uint256 i = 0; i < assetIds.length; ++i) {
+            PriceData memory data = _priceData[assetIds[i]];
+            prices[i] = data.price;
+            timestamps[i] = data.timestamp;
+        }
     }
 
     function updatePrice(bytes32 assetId, uint256 price) external onlyOperator {

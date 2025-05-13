@@ -66,12 +66,30 @@ contract FallbackOracleTest is Test {
         assertLe(ts, block.timestamp);
     }
 
-    function test_getPriceData_tooOld() public {
+    function test_getPriceData_returnsZeroIfNotSet() public {
+        (uint256 price, uint256 ts) = oracle.getPriceData(ASSET_ID);
+        assertEq(price, 0);
+        assertEq(ts, 0);
+    }
+
+    function test_getValidPrice_success() public {
+        oracle.setOperator(owner, true);
+        oracle.updatePrice(ASSET_ID, PRICE);
+        uint256 price = oracle.getValidPrice(ASSET_ID);
+        assertEq(price, PRICE);
+    }
+
+    function test_getValidPrice_priceNotSet() public {
+        vm.expectRevert(IFallbackOracle.PriceFeedNotFound.selector);
+        oracle.getValidPrice(ASSET_ID);
+    }
+
+    function test_getValidPrice_tooOld() public {
         oracle.setOperator(owner, true);
         oracle.updatePrice(ASSET_ID, PRICE);
         vm.warp(block.timestamp + MAX_AGE + 1);
         vm.expectRevert(IFallbackOracle.PriceTooOld.selector);
-        oracle.getPriceData(ASSET_ID);
+        oracle.getValidPrice(ASSET_ID);
     }
 
     function test_setPriceMaxAge_onlyOwner() public {
