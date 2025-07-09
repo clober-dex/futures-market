@@ -12,8 +12,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
-    uint256 public constant FEE_PRECISION = 100_000; // 1e5
-    uint256 public constant MAX_FEE_BPS = 100; // 0.1%
+    uint256 public constant FEE_PRECISION = 1_000_000; // 1e6
+    uint256 public constant MAX_FEE_BPS = 1000; // 0.1%
 
     mapping(address => mapping(bytes4 => bool)) public allowedRouterMethods;
     address public feeRecipient;
@@ -23,8 +23,6 @@ contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, Reentran
     error TransferFailed();
     error MethodNotAllowed();
     error InsufficientAmountOut();
-    error FeeTooHigh();
-    error InvalidFeeRecipient();
 
     event RouterMethodAdded(address indexed router, bytes4 method);
     event RouterMethodRemoved(address indexed router, bytes4 method);
@@ -37,28 +35,26 @@ contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, Reentran
         address router,
         bytes4 method
     );
-
     event FeeCollected(address indexed recipient, address indexed token, uint256 amount);
+    event FeeRecipientChanged(address indexed newRecipient);
 
     constructor() Ownable(msg.sender) {}
 
-    function initialize(address initialOwner, address initialFeeRecipient) external initializer {
+    function initialize(address initialOwner) external initializer {
         _transferOwnership(initialOwner);
-        setFeeRecipient(initialFeeRecipient);
     }
 
-    function setFeeRecipient(address newRecipient) public onlyOwner {
-        if (newRecipient == address(0)) revert InvalidFeeRecipient();
+    function setFeeRecipient(address newRecipient) external onlyOwner {
         feeRecipient = newRecipient;
+        emit FeeRecipientChanged(newRecipient);
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
-    function _calculateActualFee(uint256 amountOut, uint256 fee) internal pure returns (uint256) {
+    function _calculateActualFee(uint256 amountOut, uint256 fee) internal view returns (uint256) {
+        if (feeRecipient == address(0)) return 0;
         uint256 maxFee = (amountOut * MAX_FEE_BPS) / FEE_PRECISION;
-        uint256 actualFee = fee == 0 ? maxFee : fee;
-        if (actualFee > maxFee) actualFee = maxFee;
-        return actualFee;
+        return (fee == 0 || fee > maxFee) ? maxFee : fee;
     }
 
     function addRouterMethod(address router, bytes4 method) external onlyOwner {
@@ -88,7 +84,7 @@ contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, Reentran
         address router,
         bytes calldata data,
         uint256 fee
-    ) external payable nonReentrant returns (uint256 amountOut) {
+    ) external payable nonReentrant returns (uint256 amountOut, uint256 actualFee) {
         bytes4 method = bytes4(data[0:4]);
         if (!allowedRouterMethods[router][method]) revert MethodNotAllowed();
 
@@ -115,10 +111,10 @@ contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, Reentran
         amountOut = outToken == address(0)
             ? address(this).balance - amountOut
             : IERC20(outToken).balanceOf(address(this)) - amountOut;
-        if (amountOut < minAmountOut) revert InsufficientAmountOut();
+        actualFee = _calculateActualFee(amountOut, fee);
 
-        uint256 actualFee = _calculateActualFee(amountOut, fee);
         uint256 amountToSend = amountOut - actualFee;
+        if (amountToSend < minAmountOut) revert InsufficientAmountOut();
 
         if (outToken == address(0)) {
             (success,) = payable(msg.sender).call{value: amountToSend}("");
