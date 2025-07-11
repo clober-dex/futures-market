@@ -54,7 +54,7 @@ contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, Reentran
     function _calculateActualFee(uint256 amountOut, uint256 fee) internal view returns (uint256) {
         if (feeRecipient == address(0)) return 0;
         uint256 maxFee = (amountOut * MAX_FEE_BPS) / FEE_PRECISION;
-        return (fee == 0 || fee > maxFee) ? maxFee : fee;
+        return (fee > maxFee) ? maxFee : fee;
     }
 
     function addRouterMethod(address router, bytes4 method) external onlyOwner {
