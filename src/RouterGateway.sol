@@ -131,7 +131,7 @@ contract RouterGateway is UUPSUpgradeable, Ownable2Step, Initializable, Reentran
             }
         }
 
-        emit Swap(msg.sender, inToken, outToken, amountIn, amountOut, router, method);
+        emit Swap(msg.sender, inToken, outToken, amountIn, amountToSend, router, method);
 
         if (actualFee > 0) {
             emit FeeCollected(feeRecipient, outToken, actualFee);
